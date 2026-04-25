@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>FlowState Pro | Intelligent Task Manager</title>
-    <meta name="description" content="Professional task manager with reminders, recurring tasks, calendar, pomodoro, and offline support.">
+    <title>TaskForce | Pro Task Manager</title>
+    <meta name="description" content="TaskForce - intelligent task manager with reminders, recurring tasks, calendar & pomodoro.">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#3B5C7D">
     <!-- Fonts & Icons -->
@@ -18,10 +18,10 @@
 <body>
 <div class="app-container">
     <div class="header">
-        <h1><i class="fas fa-brain"></i> FlowState Pro</h1>
+        <h1><i class="fas fa-bolt"></i> TaskForce</h1>
         <div class="theme-toggle">
-            <button class="theme-btn" data-theme="light"><i class="fas fa-sun"></i></button>
-            <button class="theme-btn" data-theme="dark"><i class="fas fa-moon"></i></button>
+            <button class="theme-btn" data-theme="light" aria-label="Light mode"><i class="fas fa-sun"></i></button>
+            <button class="theme-btn" data-theme="dark" aria-label="Dark mode"><i class="fas fa-moon"></i></button>
         </div>
     </div>
     <div class="main-grid">
@@ -29,29 +29,30 @@
         <div class="sidebar">
             <div class="card">
                 <h3><i class="fas fa-plus"></i> New Task</h3>
-                <div class="input-group"><input type="text" id="taskTitle" placeholder="Task title"></div>
-                <div class="input-group"><textarea id="taskDesc" placeholder="Description" rows="2"></textarea></div>
-                <div class="input-group"><input type="datetime-local" id="taskDue"></div>
+                <div class="input-group"><input type="text" id="taskTitle" placeholder="Task title" aria-label="Task title"></div>
+                <div class="input-group"><textarea id="taskDesc" placeholder="Description" rows="2" aria-label="Description"></textarea></div>
+                <div class="input-group"><input type="datetime-local" id="taskDue" aria-label="Due date"></div>
                 <div class="input-group">
-                    <select id="taskPriority">
+                    <select id="taskPriority" aria-label="Priority">
                         <option value="low">Low</option>
                         <option value="medium" selected>Medium</option>
                         <option value="high">High</option>
                     </select>
                 </div>
-                <div class="input-group"><input type="text" id="taskTags" placeholder="Tags (comma separated)"></div>
+                <div class="input-group"><input type="text" id="taskTags" placeholder="Tags (comma separated)" aria-label="Tags"></div>
                 <div class="input-group">
-                    <select id="recurring">
+                    <select id="recurring" aria-label="Recurring">
                         <option value="">No repeat</option>
                         <option value="daily">Daily</option>
                         <option value="weekly">Weekly</option>
                     </select>
                 </div>
-                <button id="addBtn"><i class="fas fa-save"></i> Add Task</button>
+                <button id="addBtn" aria-label="Add new task"><i class="fas fa-save"></i> Add Task</button>
             </div>
             <div class="card">
                 <h3><i class="fas fa-chart-line"></i> Stats</h3>
                 <div id="stats"></div>
+                <div id="lastSaved" style="font-size:0.7rem; margin-top:0.5rem; color:var(--text-muted)"></div>
             </div>
             <div class="card">
                 <h3><i class="fas fa-calendar-alt"></i> Mini Calendar</h3>
@@ -59,39 +60,39 @@
             </div>
             <div class="card">
                 <h3><i class="fas fa-download"></i> Data</h3>
-                <button id="exportBtn">Export JSON</button>
-                <button id="importBtn">Import JSON</button>
-                <input type="file" id="importFile" style="display:none">
+                <button id="exportBtn" aria-label="Export tasks as JSON">Export JSON</button>
+                <button id="importBtn" aria-label="Import tasks from JSON">Import JSON</button>
+                <input type="file" id="importFile" style="display:none" accept=".json">
             </div>
             <div class="card">
                 <h3><i class="fas fa-clock"></i> Pomodoro</h3>
-                <div><span id="timerDisplay">25:00</span> <button id="pomodoroStart">Start</button> <button id="pomodoroStop">Stop</button></div>
+                <div><span id="timerDisplay">25:00</span> <button id="pomodoroStart" aria-label="Start pomodoro timer">Start</button> <button id="pomodoroStop" aria-label="Stop pomodoro timer">Stop</button></div>
             </div>
         </div>
         <!-- Main content -->
         <div class="content">
             <div class="card toolbar">
                 <div class="filter-group">
-                    <button id="filterAll" class="active-filter">All</button>
-                    <button id="filterActive">Active</button>
-                    <button id="filterCompleted">Completed</button>
+                    <button id="filterAll" class="active-filter" aria-label="Show all tasks">All</button>
+                    <button id="filterActive" aria-label="Show active tasks">Active</button>
+                    <button id="filterCompleted" aria-label="Show completed tasks">Completed</button>
                 </div>
-                <select id="sortBy">
+                <select id="sortBy" aria-label="Sort tasks by">
                     <option value="due">Sort by Due Date</option>
                     <option value="priority">Sort by Priority</option>
                     <option value="created">Sort by Created</option>
                 </select>
-                <input type="text" id="searchTasks" placeholder="Search...">
-                <button id="bulkDeleteBtn"><i class="fas fa-trash"></i> Delete Selected</button>
-                <button id="bulkCompleteBtn"><i class="fas fa-check-double"></i> Complete Selected</button>
+                <input type="text" id="searchTasks" placeholder="Search..." aria-label="Search tasks">
+                <button id="bulkDeleteBtn" aria-label="Delete selected tasks"><i class="fas fa-trash"></i> Delete Selected</button>
+                <button id="bulkCompleteBtn" aria-label="Complete selected tasks"><i class="fas fa-check-double"></i> Complete Selected</button>
             </div>
             <div id="taskListContainer" class="task-list"></div>
         </div>
     </div>
 </div>
-<div id="toast" class="toast" style="display:none"></div>
+<div id="toast" class="toast" style="display:none" role="alert" aria-live="polite"></div>
+<div aria-live="polite" class="sr-only" id="liveAnnouncer"></div>
 
-<!-- JavaScript modules -->
 <script type="module" src="js/main.js"></script>
 </body>
 </html>
