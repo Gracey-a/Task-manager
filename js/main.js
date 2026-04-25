@@ -1,13 +1,13 @@
-// main.js
+// js/main.js
 import { openDB, loadTasksFromDB, saveTasksToDB } from './db.js';
-import { generateId, showToast, escapeHtml } from './utils.js';
+import { generateId, showToast } from './utils.js';
 import { 
-    setGlobalTasks, getSelectedIds, clearSelected, toggleSelectTask,
+    setGlobalTasks, getSelectedIds, clearSelected,
     renderStats, renderTaskList, renderMiniCalendar,
     setFilter, setSearch, setSortMethod
 } from './ui.js';
 import { checkRecurringTasks, checkReminders } from './reminders.js';
-import { startPomodoro, stopPomodoro, resetPomodoro } from './pomodoro.js';
+import { startPomodoro, stopPomodoro } from './pomodoro.js';
 
 // Global state
 let tasks = [];
@@ -26,7 +26,16 @@ const exportBtn = document.getElementById("exportBtn");
 const importBtn = document.getElementById("importBtn");
 const importFile = document.getElementById("importFile");
 
-// Helper: save and re-render
+// Helper: debounce for search
+function debounce(func, delay) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), delay);
+    };
+}
+
+// Core render & persist
 async function persistAndRender() {
     await saveTasksToDB(tasks);
     setGlobalTasks(tasks);
@@ -43,7 +52,7 @@ async function fullRender() {
     renderMiniCalendar(tasks);
 }
 
-// Core operations
+// Task operations
 async function addTask(title, desc, due, priority, tagsStr, recurring) {
     if (!title.trim()) { showToast("Title required", false); return false; }
     const newTask = {
@@ -108,6 +117,7 @@ function handleShowLog(id) {
 
 async function bulkDeleteSelected() {
     const selected = [...getSelectedIds()];
+    if (selected.length === 0) { showToast("No tasks selected", false); return; }
     for (let id of selected) {
         await handleDeleteTask(id, true);
     }
@@ -116,7 +126,9 @@ async function bulkDeleteSelected() {
 }
 
 async function bulkCompleteSelected() {
-    for (let id of getSelectedIds()) {
+    const selected = [...getSelectedIds()];
+    if (selected.length === 0) { showToast("No tasks selected", false); return; }
+    for (let id of selected) {
         const task = tasks.find(t => t.id === id);
         if (task && !task.completed) {
             task.completed = true;
@@ -134,34 +146,39 @@ async function exportToJSON() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "flowstate_backup.json";
+    a.download = "taskforce_backup.json";
     a.click();
     URL.revokeObjectURL(url);
+    showToast("Tasks exported", true);
 }
 
 async function importFromJSON(file) {
-    const text = await file.text();
-    const imported = JSON.parse(text);
-    tasks = imported;
-    await persistAndRender();
-    showToast("Imported successfully", true);
+    try {
+        const text = await file.text();
+        const imported = JSON.parse(text);
+        tasks = imported;
+        await persistAndRender();
+        showToast("Imported successfully", true);
+    } catch (e) {
+        showToast("Invalid JSON file", false);
+    }
 }
 
 // Theme
 function setTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("flowstate_theme", theme);
+    localStorage.setItem("taskforce_theme", theme);
     document.querySelectorAll(".theme-btn").forEach(btn => {
         if (btn.dataset.theme === theme) btn.classList.add("active");
         else btn.classList.remove("active");
     });
 }
 function loadTheme() {
-    const saved = localStorage.getItem("flowstate_theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const saved = localStorage.getItem("taskforce_theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     setTheme(saved);
 }
 
-// Recurring check wrapper
+// Recurring check
 async function runRecurringCheck() {
     tasks = checkRecurringTasks(tasks, async (newTasks) => { tasks = newTasks; await persistAndRender(); });
     await persistAndRender();
@@ -187,7 +204,13 @@ function bindEvents() {
     filterActive.onclick = () => { setFilter("active"); fullRender(); };
     filterCompleted.onclick = () => { setFilter("completed"); fullRender(); };
     sortSelect.onchange = (e) => { setSortMethod(e.target.value); fullRender(); };
-    searchInput.oninput = (e) => { setSearch(e.target.value); fullRender(); };
+    
+    const debouncedSearch = debounce((e) => {
+        setSearch(e.target.value);
+        fullRender();
+    }, 300);
+    searchInput.addEventListener('input', debouncedSearch);
+    
     bulkDelete.onclick = bulkDeleteSelected;
     bulkComplete.onclick = bulkCompleteSelected;
     exportBtn.onclick = exportToJSON;
@@ -198,10 +221,12 @@ function bindEvents() {
     document.querySelectorAll(".theme-btn").forEach(btn => {
         btn.addEventListener("click", () => setTheme(btn.dataset.theme));
     });
+    
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
         if (e.ctrlKey && e.key === 'n') { e.preventDefault(); document.getElementById("taskTitle").focus(); }
         if (e.ctrlKey && e.key === 'f') { e.preventDefault(); searchInput.focus(); }
+        if (e.ctrlKey && e.key === 'z') { e.preventDefault(); if (deletedTaskStack.length > 0) undoDelete(); else showToast("Nothing to undo", false); }
         if (e.key === 'Delete' && getSelectedIds().size > 0) bulkDeleteSelected();
     });
 }
@@ -215,7 +240,7 @@ async function init() {
     bindEvents();
     loadTheme();
     await persistAndRender();
-    setInterval(runRecurringCheck, 60000); // check every minute
+    setInterval(runRecurringCheck, 60000);
     if (Notification.permission === "default") Notification.requestPermission();
 }
 init();
