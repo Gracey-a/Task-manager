@@ -1,7 +1,7 @@
-// sw.js
-const CACHE_NAME = "flowstate-v1";
+const CACHE_NAME = "taskforce-v1";
 const urlsToCache = [
     "/",
+    "/index.html",
     "/styles.css",
     "/js/main.js",
     "/js/db.js",
