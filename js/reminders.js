@@ -1,4 +1,4 @@
-// reminders.js
+// js/reminders.js
 export function checkRecurringTasks(tasks, saveCallback) {
     let changed = false;
     tasks.forEach(task => {
@@ -20,7 +20,7 @@ export function checkRecurringTasks(tasks, saveCallback) {
                 newTask.dueDate = newDue.toISOString().slice(0,16);
             }
             tasks.push(newTask);
-            task.recurring = null; // avoid infinite loop
+            task.recurring = null;
             changed = true;
         }
     });
@@ -33,7 +33,7 @@ export function checkReminders(tasks) {
     const upcoming = tasks.filter(t => !t.completed && t.dueDate && new Date(t.dueDate) <= new Date(now.getTime() + 3600000));
     if (upcoming.length && Notification.permission === "granted") {
         upcoming.forEach(task => {
-            new Notification("FlowState Reminder", { body: `"${task.title}" is due soon!` });
+            new Notification("TaskForce Reminder", { body: `"${task.title}" is due soon!` });
         });
     }
     return upcoming.length;
