@@ -183,9 +183,27 @@ button:hover { background: var(--accent-hover); }
 }
 .cal-day.has-task { background: var(--accent-soft); font-weight: bold; }
 
+/* Accessibility */
+button:focus-visible, 
+input:focus-visible, 
+select:focus-visible,
+.task-item:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    border: 0;
+}
+
 @media (max-width: 800px) {
     .sidebar { flex: auto; width: 100%; }
     .main-grid { flex-direction: column; }
     .toolbar { flex-direction: column; align-items: stretch; }
 }
-.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; }
