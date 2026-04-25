@@ -1,4 +1,4 @@
-// ui.js
+// js/ui.js
 import { escapeHtml } from './utils.js';
 
 let tasks = [];
@@ -26,7 +26,7 @@ export function getFilteredTasks() {
         filtered = filtered.filter(t => 
             t.title.toLowerCase().includes(q) || 
             t.description.toLowerCase().includes(q) ||
-            t.tags.some(tag => tag.toLowerCase().includes(q))
+            (t.tags && t.tags.some(tag => tag.toLowerCase().includes(q)))
         );
     }
     if (sortMethod === "due") {
@@ -61,16 +61,16 @@ export function renderTaskList(onToggleComplete, onDelete, onEdit, onShowLog) {
     container.innerHTML = filtered.map(task => `
         <div class="task-item ${task.completed ? 'completed' : ''}" data-id="${task.id}">
             <div class="task-header">
-                <input type="checkbox" class="task-select" data-id="${task.id}" ${selectedTaskIds.has(task.id) ? 'checked' : ''}>
+                <input type="checkbox" class="task-select" data-id="${task.id}" ${selectedTaskIds.has(task.id) ? 'checked' : ''} aria-label="Select task">
                 <span class="task-title">${escapeHtml(task.title)}</span>
                 <span class="badge" style="background:${task.priority==='high'?'#FEE2E2':task.priority==='medium'?'#FEF3C7':'#D1FAE5'}">${task.priority}</span>
                 ${task.dueDate ? `<span class="badge"><i class="far fa-clock"></i> ${new Date(task.dueDate).toLocaleString()}</span>` : ''}
-                ${task.tags.map(t => `<span class="badge tag">${escapeHtml(t)}</span>`).join('')}
+                ${task.tags && task.tags.length ? task.tags.map(t => `<span class="badge tag">${escapeHtml(t)}</span>`).join('') : ''}
                 <div class="task-actions">
-                    <button class="complete-btn" data-id="${task.id}" title="Complete"><i class="fas ${task.completed ? 'fa-undo' : 'fa-check'}"></i></button>
-                    <button class="edit-btn" data-id="${task.id}" title="Edit"><i class="fas fa-edit"></i></button>
-                    <button class="delete-btn" data-id="${task.id}" title="Delete"><i class="fas fa-trash"></i></button>
-                    <button class="log-btn" data-id="${task.id}" title="Activity Log"><i class="fas fa-history"></i></button>
+                    <button class="complete-btn" data-id="${task.id}" title="Toggle complete" aria-label="Toggle complete"><i class="fas ${task.completed ? 'fa-undo' : 'fa-check'}"></i></button>
+                    <button class="edit-btn" data-id="${task.id}" title="Edit task" aria-label="Edit task"><i class="fas fa-edit"></i></button>
+                    <button class="delete-btn" data-id="${task.id}" title="Delete task" aria-label="Delete task"><i class="fas fa-trash"></i></button>
+                    <button class="log-btn" data-id="${task.id}" title="Activity log" aria-label="Activity log"><i class="fas fa-history"></i></button>
                 </div>
             </div>
             ${task.description ? `<div class="task-desc" style="font-size:0.8rem; margin-top:0.3rem; color:var(--text-muted)">${escapeHtml(task.description)}</div>` : ''}
