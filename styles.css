@@ -66,6 +66,28 @@ h1 {
     align-items: center;
 }
 
+.title-badge {
+    font-size: 0.7rem;
+    font-weight: 500;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 0.2rem 0.6rem;
+    border-radius: 2rem;
+    margin-left: 0.6rem;
+    vertical-align: middle;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+/* On small screens, allow badge to wrap or reduce margin */
+@media (max-width: 500px) {
+    .title-badge {
+        font-size: 0.6rem;
+        margin-left: 0.3rem;
+        white-space: normal;
+    }
+}
+
 .icon-btn {
     background: transparent;
     border: none;
