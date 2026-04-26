@@ -1,6 +1,4 @@
-// js/db.js
 import { showToast } from './utils.js';
-
 let db = null;
 const DB_NAME = "TaskForceDB";
 const STORE_NAME = "tasks";
@@ -9,10 +7,7 @@ export async function openDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, 1);
         request.onerror = () => reject(request.error);
-        request.onsuccess = () => {
-            db = request.result;
-            resolve(db);
-        };
+        request.onsuccess = () => { db = request.result; resolve(db); };
         request.onupgradeneeded = (e) => {
             const db = e.target.result;
             if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -49,11 +44,8 @@ export async function saveTasksToDB(tasks) {
         store.clear();
         tasks.forEach(task => store.put(task));
         await tx.complete;
-        // Update last saved timestamp
         const lastSavedElem = document.getElementById("lastSaved");
-        if (lastSavedElem) {
-            lastSavedElem.innerHTML = `<i class="far fa-save"></i> Last saved: ${new Date().toLocaleTimeString()}`;
-        }
+        if (lastSavedElem) lastSavedElem.innerHTML = `<i class="far fa-save"></i> Last saved: ${new Date().toLocaleTimeString()}`;
         return true;
     } catch (error) {
         console.error("IndexedDB save failed, using localStorage fallback", error);
