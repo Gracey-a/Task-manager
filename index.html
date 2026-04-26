@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>TaskForce | Pro Task Manager</title>
-    <meta name="description" content="Professional task manager with cloud sync, kanban, analytics, and smart reminders.">
+    <title>TaskForce Pro | Ultimate Task Manager</title>
+    <meta name="description" content="Professional task manager with real‑time sync, file attachments, time tracking, and offline support.">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#3B5C7D">
     
@@ -20,16 +20,17 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <!-- Main CSS -->
+    <!-- Quill for rich text editing -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <!-- rrule for recurring tasks -->
+    <script src="https://cdn.jsdelivr.net/npm/rrule@2.6.4/dist/es5/rrule.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="app-container">
     <div class="header">
-        <h1>
-            <i class="fas fa-bolt"></i> TaskForce
-            <span class="title-badge">task manager</span>
-        </h1>
+        <h1><i class="fas fa-bolt"></i> TaskForce <span class="title-badge">Task manager</span></h1>
         <div class="header-actions">
             <button id="focusModeBtn" class="icon-btn" title="Focus mode"><i class="fas fa-eye-slash"></i></button>
             <button id="viewToggleBtn" class="icon-btn" title="Toggle Kanban view"><i class="fas fa-columns"></i></button>
@@ -42,12 +43,14 @@
     </div>
     
     <div class="main-grid">
-        <!-- Sidebar -->
-        <div class="sidebar" id="sidebar">
+        <div class="sidebar">
             <div class="card">
                 <h3><i class="fas fa-plus"></i> New Task</h3>
                 <div class="input-group"><input type="text" id="taskTitle" placeholder="Task title"></div>
-                <div class="input-group"><textarea id="taskDesc" placeholder="Description" rows="2"></textarea></div>
+                <div class="input-group">
+                    <label>Description (rich text)</label>
+                    <div id="richEditor" style="height:150px;"></div>
+                </div>
                 <div class="input-group"><input type="datetime-local" id="taskDue"></div>
                 <div class="input-group">
                     <select id="taskPriority">
@@ -58,40 +61,41 @@
                 </div>
                 <div class="input-group"><input type="text" id="taskTags" placeholder="Tags (comma separated)"></div>
                 <div class="input-group">
-                    <select id="recurring">
+                    <select id="recurringRule">
                         <option value="">No repeat</option>
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="custom">Custom (days)</option>
+                        <option value="RRULE:FREQ=DAILY">Daily</option>
+                        <option value="RRULE:FREQ=WEEKLY">Weekly</option>
+                        <option value="RRULE:FREQ=MONTHLY">Monthly</option>
+                        <option value="RRULE:FREQ=YEARLY">Yearly</option>
                     </select>
-                    <input type="number" id="customRecurDays" placeholder="Every X days" style="display:none; margin-top:0.3rem;">
                 </div>
-                <!-- Image upload -->
                 <div class="input-group">
-                    <label><i class="fas fa-image"></i> Attach images</label>
-                    <input type="file" id="taskImages" accept="image/*" multiple>
-                    <div id="imagePreview" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;"></div>
+                    <label><i class="fas fa-paperclip"></i> Attach files</label>
+                    <input type="file" id="taskFiles" multiple>
+                    <div id="filePreviewList" style="margin-top:0.5rem; font-size:0.7rem;"></div>
                 </div>
                 <button id="addBtn"><i class="fas fa-save"></i> Add Task</button>
             </div>
             <div class="card">
                 <h3><i class="fas fa-chart-line"></i> Stats</h3>
                 <div id="stats"></div>
-                <div id="lastSaved" style="font-size:0.7rem;"></div>
-                <button id="syncBtn" class="secondary-btn"><i class="fas fa-cloud-upload-alt"></i> Sync to Cloud</button>
+                <div id="lastSaved"></div>
+                <button id="syncBtn" class="secondary-btn"><i class="fas fa-cloud-upload-alt"></i> Force Sync</button>
+                <button id="shareListBtn" class="secondary-btn"><i class="fas fa-share-alt"></i> Share List</button>
                 <button id="signInBtn" class="secondary-btn"><i class="fab fa-google"></i> Sign in</button>
             </div>
             <div class="card">
                 <h3><i class="fas fa-chart-simple"></i> Analytics</h3>
                 <canvas id="completionChart" width="200" height="150"></canvas>
                 <div id="insights"></div>
+                <button id="exportCsvBtn" class="secondary-btn"><i class="fas fa-file-csv"></i> Export CSV</button>
             </div>
             <div class="card">
-                <h3><i class="fas fa-calendar-alt"></i> Mini Calendar</h3>
+                <h3><i class="fas fa-calendar-alt"></i> Calendar</h3>
                 <div id="miniCalendar"></div>
             </div>
             <div class="card">
-                <h3><i class="fas fa-download"></i> Data</h3>
+                <h3><i class="fas fa-file-export"></i> Data</h3>
                 <button id="exportBtn">Export JSON</button>
                 <button id="importBtn">Import JSON</button>
                 <input type="file" id="importFile" style="display:none">
@@ -102,7 +106,6 @@
             </div>
         </div>
         
-        <!-- Main content -->
         <div class="content">
             <div class="card toolbar">
                 <div class="filter-group">
@@ -111,9 +114,9 @@
                     <button id="filterCompleted">Completed</button>
                 </div>
                 <select id="sortBy">
-                    <option value="due">Sort by Due Date</option>
-                    <option value="priority">Sort by Priority</option>
-                    <option value="created">Sort by Created</option>
+                    <option value="due">Due Date</option>
+                    <option value="priority">Priority</option>
+                    <option value="created">Created</option>
                 </select>
                 <input type="text" id="searchTasks" placeholder="Search...">
                 <button id="bulkDeleteBtn"><i class="fas fa-trash"></i> Delete Selected</button>
@@ -127,17 +130,17 @@
 
 <!-- Modals -->
 <div id="shortcutsModal" class="modal" style="display:none">
-    <div class="modal-content">
-        <h3>Keyboard Shortcuts</h3>
-        <ul>
-            <li><kbd>Ctrl+N</kbd> New task</li>
-            <li><kbd>Ctrl+F</kbd> Focus search</li>
-            <li><kbd>Ctrl+Z</kbd> Undo last delete</li>
-            <li><kbd>Del</kbd> Delete selected tasks</li>
-            <li><kbd>?</kbd> Show this help</li>
-            <li><kbd>Esc</kbd> Close modal</li>
-        </ul>
+    <div class="modal-content"><h3>Keyboard Shortcuts</h3>
+        <ul><li><kbd>Ctrl+N</kbd> New task</li><li><kbd>Ctrl+F</kbd> Search</li><li><kbd>Ctrl+Z</kbd> Undo</li><li><kbd>Del</kbd> Delete selected</li><li><kbd>?</kbd> Help</li></ul>
         <button id="closeShortcuts">Close</button>
+    </div>
+</div>
+<div id="shareModal" class="modal" style="display:none">
+    <div class="modal-content"><h3>Share Task List</h3>
+        <p>Enter email to share:</p>
+        <input type="email" id="shareEmail" placeholder="friend@example.com">
+        <button id="shareConfirm">Share</button>
+        <button id="closeShareModal">Cancel</button>
     </div>
 </div>
 
