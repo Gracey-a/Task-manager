@@ -1,17 +1,8 @@
-// js/utils.js
-export function generateId() {
-    return Date.now() + Math.random();
-}
-
+export function generateId() { return Date.now() + Math.random(); }
 export function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/[&<>]/g, m => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;'
-    })[m]);
+    return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
 }
-
 let toastTimeout = null;
 export function showToast(msg, isSuccess = true, undoCallback = null) {
     const toast = document.getElementById("toast");
@@ -19,19 +10,11 @@ export function showToast(msg, isSuccess = true, undoCallback = null) {
     toast.innerHTML = `${msg} ${undoCallback ? '<button class="toast-undo" id="undoToastBtn">Undo</button>' : ''}`;
     toast.style.display = "flex";
     if (toastTimeout) clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => {
-        toast.style.display = "none";
-    }, 4000);
+    toastTimeout = setTimeout(() => { toast.style.display = "none"; }, 4000);
     if (undoCallback) {
         const undoBtn = document.getElementById("undoToastBtn");
-        if (undoBtn) {
-            undoBtn.addEventListener("click", () => {
-                undoCallback();
-                toast.style.display = "none";
-            }, { once: true });
-        }
+        if (undoBtn) undoBtn.addEventListener("click", () => { undoCallback(); toast.style.display = "none"; }, { once: true });
     }
-    // Also announce for screen readers
     const announcer = document.getElementById("liveAnnouncer");
     if (announcer) announcer.textContent = msg;
 }
