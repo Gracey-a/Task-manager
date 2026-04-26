@@ -45,3 +45,10 @@ export async function syncTasksToCloud(tasks) {
     return true;
 }
 export function isSignedIn() { return !!currentUser; }
+
+export async function shareTaskList(email) {
+    if(!currentUser) { showToast("Sign in first", false); return; }
+    const shareRef = doc(db, "shared", currentUser.uid);
+    await setDoc(shareRef, { sharedWith: arrayUnion(email) }, { merge: true });
+    showToast(`List shared with ${email}`, true);
+}
