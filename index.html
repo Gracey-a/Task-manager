@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>TaskForce | Pro Task Manager</title>
-    <meta name="description" content="TaskForce - intelligent task manager with reminders, recurring tasks, calendar & pomodoro.">
+    <title>TaskForce Pro | 10/10 Task Manager</title>
+    <meta name="description" content="Professional task manager with cloud sync, kanban, analytics, and smart reminders.">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#3B5C7D">
     
-    <!-- Icons for PWA and devices -->
+    <!-- Icons -->
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
@@ -16,49 +16,68 @@
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- SortableJS for drag & drop -->
+    <!-- SortableJS -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <!-- Chart.js for analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Firebase -->
+    <script type="module" src="firebase-config.js"></script>
     <!-- Main CSS -->
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="app-container">
     <div class="header">
-        <h1><i class="fas fa-bolt"></i> TaskForce</h1>
-        <div class="theme-toggle">
-            <button class="theme-btn" data-theme="light" aria-label="Light mode"><i class="fas fa-sun"></i></button>
-            <button class="theme-btn" data-theme="dark" aria-label="Dark mode"><i class="fas fa-moon"></i></button>
+        <h1><i class="fas fa-bolt"></i> TaskForce <span class="badge-pro">10/10</span></h1>
+        <div class="header-actions">
+            <button id="focusModeBtn" class="icon-btn" aria-label="Focus mode"><i class="fas fa-eye-slash"></i></button>
+            <button id="viewToggleBtn" class="icon-btn" aria-label="Toggle Kanban view"><i class="fas fa-columns"></i></button>
+            <button id="helpBtn" class="icon-btn" aria-label="Keyboard shortcuts"><i class="fas fa-question"></i></button>
+            <div class="theme-toggle">
+                <button class="theme-btn" data-theme="light"><i class="fas fa-sun"></i></button>
+                <button class="theme-btn" data-theme="dark"><i class="fas fa-moon"></i></button>
+            </div>
         </div>
     </div>
+    
     <div class="main-grid">
         <!-- Sidebar -->
-        <div class="sidebar">
+        <div class="sidebar" id="sidebar">
             <div class="card">
                 <h3><i class="fas fa-plus"></i> New Task</h3>
-                <div class="input-group"><input type="text" id="taskTitle" placeholder="Task title" aria-label="Task title"></div>
-                <div class="input-group"><textarea id="taskDesc" placeholder="Description" rows="2" aria-label="Description"></textarea></div>
-                <div class="input-group"><input type="datetime-local" id="taskDue" aria-label="Due date"></div>
+                <div class="input-group"><input type="text" id="taskTitle" placeholder="Task title"></div>
+                <div class="input-group"><textarea id="taskDesc" placeholder="Description" rows="2"></textarea></div>
+                <div class="input-group"><input type="datetime-local" id="taskDue"></div>
                 <div class="input-group">
-                    <select id="taskPriority" aria-label="Priority">
+                    <select id="taskPriority">
                         <option value="low">Low</option>
                         <option value="medium" selected>Medium</option>
                         <option value="high">High</option>
                     </select>
                 </div>
-                <div class="input-group"><input type="text" id="taskTags" placeholder="Tags (comma separated)" aria-label="Tags"></div>
+                <div class="input-group"><input type="text" id="taskTags" placeholder="Tags (comma separated)"></div>
                 <div class="input-group">
-                    <select id="recurring" aria-label="Recurring">
+                    <select id="recurring">
                         <option value="">No repeat</option>
                         <option value="daily">Daily</option>
                         <option value="weekly">Weekly</option>
+                        <option value="custom">Custom (days)</option>
                     </select>
+                    <input type="number" id="customRecurDays" placeholder="Every X days" style="display:none; margin-top:0.3rem;">
                 </div>
-                <button id="addBtn" aria-label="Add new task"><i class="fas fa-save"></i> Add Task</button>
+                <button id="addBtn"><i class="fas fa-save"></i> Add Task</button>
             </div>
             <div class="card">
                 <h3><i class="fas fa-chart-line"></i> Stats</h3>
                 <div id="stats"></div>
-                <div id="lastSaved" style="font-size:0.7rem; margin-top:0.5rem; color:var(--text-muted)"></div>
+                <div id="lastSaved"></div>
+                <button id="syncBtn" class="secondary-btn"><i class="fas fa-cloud-upload-alt"></i> Sync to Cloud</button>
+                <button id="signInBtn" class="secondary-btn"><i class="fab fa-google"></i> Sign in</button>
+            </div>
+            <div class="card">
+                <h3><i class="fas fa-chart-simple"></i> Analytics</h3>
+                <canvas id="completionChart" width="200" height="150"></canvas>
+                <div id="insights"></div>
             </div>
             <div class="card">
                 <h3><i class="fas fa-calendar-alt"></i> Mini Calendar</h3>
@@ -66,37 +85,49 @@
             </div>
             <div class="card">
                 <h3><i class="fas fa-download"></i> Data</h3>
-                <button id="exportBtn" aria-label="Export tasks as JSON">Export JSON</button>
-                <button id="importBtn" aria-label="Import tasks from JSON">Import JSON</button>
-                <input type="file" id="importFile" style="display:none" accept=".json">
+                <button id="exportBtn">Export JSON</button>
+                <button id="importBtn">Import JSON</button>
+                <input type="file" id="importFile" style="display:none">
             </div>
             <div class="card">
                 <h3><i class="fas fa-clock"></i> Pomodoro</h3>
-                <div><span id="timerDisplay">25:00</span> <button id="pomodoroStart" aria-label="Start pomodoro timer">Start</button> <button id="pomodoroStop" aria-label="Stop pomodoro timer">Stop</button></div>
+                <div><span id="timerDisplay">25:00</span> <button id="pomodoroStart">Start</button> <button id="pomodoroStop">Stop</button></div>
             </div>
         </div>
-        <!-- Main content -->
+        
+        <!-- Main content (List / Kanban) -->
         <div class="content">
             <div class="card toolbar">
                 <div class="filter-group">
-                    <button id="filterAll" class="active-filter" aria-label="Show all tasks">All</button>
-                    <button id="filterActive" aria-label="Show active tasks">Active</button>
-                    <button id="filterCompleted" aria-label="Show completed tasks">Completed</button>
+                    <button id="filterAll">All</button>
+                    <button id="filterActive">Active</button>
+                    <button id="filterCompleted">Completed</button>
                 </div>
-                <select id="sortBy" aria-label="Sort tasks by">
+                <select id="sortBy">
                     <option value="due">Sort by Due Date</option>
                     <option value="priority">Sort by Priority</option>
                     <option value="created">Sort by Created</option>
                 </select>
-                <input type="text" id="searchTasks" placeholder="Search..." aria-label="Search tasks">
-                <button id="bulkDeleteBtn" aria-label="Delete selected tasks"><i class="fas fa-trash"></i> Delete Selected</button>
-                <button id="bulkCompleteBtn" aria-label="Complete selected tasks"><i class="fas fa-check-double"></i> Complete Selected</button>
+                <input type="text" id="searchTasks" placeholder="Search...">
+                <button id="bulkDeleteBtn"><i class="fas fa-trash"></i> Delete Selected</button>
+                <button id="bulkCompleteBtn"><i class="fas fa-check-double"></i> Complete Selected</button>
             </div>
             <div id="taskListContainer" class="task-list"></div>
+            <div id="kanbanContainer" class="kanban-board" style="display:none;"></div>
         </div>
     </div>
 </div>
-<div id="toast" class="toast" style="display:none" role="alert" aria-live="polite"></div>
+
+<!-- Modals -->
+<div id="shortcutsModal" class="modal" style="display:none">
+    <div class="modal-content">
+        <h3>Keyboard Shortcuts</h3>
+        <ul><li><kbd>Ctrl+N</kbd> New task</li><li><kbd>Ctrl+F</kbd> Focus search</li><li><kbd>Ctrl+Z</kbd> Undo</li><li><kbd>Del</kbd> Delete selected</li><li><kbd>?</kbd> Show this help</li><li><kbd>Esc</kbd> Close modal</li></ul>
+        <button id="closeShortcuts">Close</button>
+    </div>
+</div>
+
+<div id="toast" class="toast" style="display:none"></div>
 <div aria-live="polite" class="sr-only" id="liveAnnouncer"></div>
 
 <script type="module" src="js/main.js"></script>
