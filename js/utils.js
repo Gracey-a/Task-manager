@@ -1,8 +1,19 @@
 export function generateId() { return Date.now() + Math.random(); }
+
 export function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
 }
+
+export function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
 let toastTimeout = null;
 export function showToast(msg, isSuccess = true, undoCallback = null) {
     const toast = document.getElementById("toast");
