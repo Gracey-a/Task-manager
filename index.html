@@ -55,6 +55,11 @@
                 </div>
                 <div class="input-group"><input type="text" id="taskTags" placeholder="Tags (comma separated)"></div>
                 <div class="input-group">
+                    <label>Attach images</label>
+                    <input type="file" id="taskImages" accept="image/*" multiple>
+                    <div id="imagePreview" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;"></div>
+                </div>
+                <div class="input-group">
                     <select id="recurring">
                         <option value="">No repeat</option>
                         <option value="daily">Daily</option>
