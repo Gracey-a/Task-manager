@@ -25,12 +25,27 @@ export function renderTaskList(onToggle, onDelete, onEdit, onLog) {
     document.querySelectorAll('.log-btn').forEach(btn => btn.addEventListener('click', (e) => onLog(parseFloat(btn.dataset.id))));
 }
 export function renderMiniCalendar(tasks) {
-    const now = new Date(), y = now.getFullYear(), m = now.getMonth();
-    const firstDay = new Date(y,m,1).getDay(), days = new Date(y,m+1,0).getDate();
-    let html = `<div class="cal-grid">${['S','M','T','W','T','F','S'].map(d=>`<div>${d}</div>`).join('')}`;
-    for(let i=0;i<firstDay;i++) html += `<div></div>`;
-    for(let d=1; d<=days; d++) { const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; const has = tasks.some(t=>t.dueDate && t.dueDate.startsWith(dateStr)); html += `<div class="cal-day ${has?'has-task':''}">${d}</div>`; }
-    html += `</div>`; document.getElementById("miniCalendar").innerHTML = html;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    let html = `<div style="text-align:center; margin-bottom:0.5rem; font-weight:600;">${monthNames[month]} ${year}</div>`;
+    html += `<div class="cal-grid">${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => `<div>${d}</div>`).join('')}`;
+    
+    for (let i = 0; i < firstDay; i++) html += `<div></div>`;
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const hasTask = tasks.some(t => t.dueDate && t.dueDate.startsWith(dateStr));
+        html += `<div class="cal-day ${hasTask ? 'has-task' : ''}">${d}</div>`;
+    }
+    html += `</div>`;
+    
+    const container = document.getElementById("miniCalendar");
+    if (container) container.innerHTML = html;
 }
 export function setFilter(f) { currentFilter = f; }
 export function setSearch(q) { searchQuery = q; }
