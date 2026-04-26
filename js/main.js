@@ -1,5 +1,5 @@
 import { openDB, loadTasksFromDB, saveTasksToDB } from './db.js';
-import { generateId, showToast } from './utils.js';
+import { generateId, showToast, fileToBase64 } from './utils.js';
 import { setGlobalTasks, getSelectedIds, clearSelected, renderStats, renderTaskList, renderMiniCalendar, setFilter, setSearch, setSortMethod, getFilteredTasks } from './ui.js';
 import { renderKanban } from './kanban.js';
 import { updateAnalytics } from './analytics.js';
@@ -18,11 +18,33 @@ function renderAll() {
     else { document.getElementById('taskListContainer').style.display = 'none'; document.getElementById('kanbanContainer').style.display = 'flex'; renderKanban(getFilteredTasks(), toggleComplete, editTask, deleteTask); }
     renderStats(); renderMiniCalendar(tasks); updateAnalytics(tasks);
 }
-async function addTask(title, desc, due, priority, tagsStr, recurring, customDays) {
+
+async function addTask(title, desc, due, priority, tagsStr, recurring, customDays, imageFiles = []) {
     if (!title.trim()) { showToast("Title required", false); return; }
-    const newTask = { id: generateId(), title: title.trim(), description: desc.trim(), dueDate: due || null, priority, tags: tagsStr.split(',').map(s=>s.trim()).filter(s=>s), recurring: recurring || null, recurringDays: customDays || null, completed: false, createdAt: new Date().toISOString(), activityLog: [`Created at ${new Date().toLocaleString()}`] };
-    tasks.unshift(newTask); await persist(); showToast(`Task "${newTask.title}" added`, true);
+    const images = [];
+    for (const file of imageFiles) {
+        const base64 = await fileToBase64(file);
+        images.push({ name: file.name, data: base64, type: file.type });
+    }
+    const newTask = {
+        id: generateId(),
+        title: title.trim(),
+        description: desc.trim(),
+        dueDate: due || null,
+        priority,
+        tags: tagsStr.split(',').map(s=>s.trim()).filter(s=>s),
+        recurring: recurring || null,
+        recurringDays: customDays || null,
+        images: images,
+        completed: false,
+        createdAt: new Date().toISOString(),
+        activityLog: [`Created at ${new Date().toLocaleString()}`]
+    };
+    tasks.unshift(newTask);
+    await persist();
+    showToast(`Task "${newTask.title}" added`, true);
 }
+
 async function deleteTask(id, record=true) {
     const task = tasks.find(t=>t.id===id); if(!task) return;
     if(record) deletedStack.push({ ...task, index: tasks.findIndex(t=>t.id===id) });
@@ -37,14 +59,46 @@ async function bulkCompleteSelected() { for(let id of selectedIds) { const t = t
 async function exportJSON() { const data = JSON.stringify(tasks, null, 2); const blob = new Blob([data], {type:"application/json"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "taskforce_backup.json"; a.click(); URL.revokeObjectURL(a.href); }
 async function importJSON(file) { const text = await file.text(); const imported = JSON.parse(text); tasks = imported; await persist(); showToast("Imported successfully", true); }
 
+// Image preview
+document.getElementById("taskImages")?.addEventListener("change", (e) => {
+    const preview = document.getElementById("imagePreview");
+    if (preview) {
+        preview.innerHTML = "";
+        for (const file of e.target.files) {
+            const img = document.createElement("img");
+            img.src = URL.createObjectURL(file);
+            img.className = "image-preview-item";
+            preview.appendChild(img);
+        }
+    }
+});
+
 // DOM bindings
-document.getElementById("addBtn").onclick = () => { addTask(document.getElementById("taskTitle").value, document.getElementById("taskDesc").value, document.getElementById("taskDue").value, document.getElementById("taskPriority").value, document.getElementById("taskTags").value, document.getElementById("recurring").value, document.getElementById("customRecurDays").value); document.getElementById("taskTitle").value = ""; document.getElementById("taskDesc").value = ""; document.getElementById("taskDue").value = ""; document.getElementById("taskTags").value = ""; };
+document.getElementById("addBtn").onclick = async () => {
+    const imageFiles = Array.from(document.getElementById("taskImages").files);
+    await addTask(
+        document.getElementById("taskTitle").value,
+        document.getElementById("taskDesc").value,
+        document.getElementById("taskDue").value,
+        document.getElementById("taskPriority").value,
+        document.getElementById("taskTags").value,
+        document.getElementById("recurring").value,
+        document.getElementById("customRecurDays").value,
+        imageFiles
+    );
+    document.getElementById("taskTitle").value = "";
+    document.getElementById("taskDesc").value = "";
+    document.getElementById("taskDue").value = "";
+    document.getElementById("taskTags").value = "";
+    document.getElementById("taskImages").value = "";
+    document.getElementById("imagePreview").innerHTML = "";
+};
 document.getElementById("filterAll").onclick = () => { setFilter("all"); renderAll(); };
 document.getElementById("filterActive").onclick = () => { setFilter("active"); renderAll(); };
 document.getElementById("filterCompleted").onclick = () => { setFilter("completed"); renderAll(); };
 document.getElementById("sortBy").onchange = (e) => { setSortMethod(e.target.value); renderAll(); };
-const debouncedSearch = (() => { let t; return (e) => { clearTimeout(t); t = setTimeout(() => { setSearch(e.target.value); renderAll(); }, 300); }; })();
-document.getElementById("searchTasks").addEventListener('input', debouncedSearch);
+let debounceTimer;
+document.getElementById("searchTasks").addEventListener("input", (e) => { clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { setSearch(e.target.value); renderAll(); }, 300); });
 document.getElementById("bulkDeleteBtn").onclick = bulkDeleteSelected;
 document.getElementById("bulkCompleteBtn").onclick = bulkCompleteSelected;
 document.getElementById("exportBtn").onclick = exportJSON;
@@ -59,6 +113,7 @@ document.getElementById("focusModeBtn").onclick = () => { focusMode = !focusMode
 document.getElementById("viewToggleBtn").onclick = () => { currentView = currentView === 'list' ? 'kanban' : 'list'; renderAll(); };
 document.getElementById("helpBtn").onclick = () => document.getElementById('shortcutsModal').style.display = 'flex';
 
+// Theme
 function setTheme(theme) { document.documentElement.setAttribute("data-theme", theme); localStorage.setItem("taskforce_theme", theme); document.querySelectorAll(".theme-btn").forEach(btn => { if(btn.dataset.theme === theme) btn.classList.add("active"); else btn.classList.remove("active"); }); }
 function loadTheme() { const saved = localStorage.getItem("taskforce_theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); setTheme(saved); }
 document.querySelectorAll(".theme-btn").forEach(btn => btn.addEventListener("click", () => setTheme(btn.dataset.theme)));
