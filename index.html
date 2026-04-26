@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>TaskForce Pro | 10/10 Task Manager</title>
+    <title>TaskForce | 10/10 Task Manager</title>
     <meta name="description" content="Professional task manager with cloud sync, kanban, analytics, and smart reminders.">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#3B5C7D">
@@ -18,10 +18,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- SortableJS -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <!-- Chart.js for analytics -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <!-- Firebase -->
-    <script type="module" src="firebase-config.js"></script>
     <!-- Main CSS -->
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -30,9 +28,9 @@
     <div class="header">
         <h1><i class="fas fa-bolt"></i> TaskForce <span class="badge-pro">10/10</span></h1>
         <div class="header-actions">
-            <button id="focusModeBtn" class="icon-btn" aria-label="Focus mode"><i class="fas fa-eye-slash"></i></button>
-            <button id="viewToggleBtn" class="icon-btn" aria-label="Toggle Kanban view"><i class="fas fa-columns"></i></button>
-            <button id="helpBtn" class="icon-btn" aria-label="Keyboard shortcuts"><i class="fas fa-question"></i></button>
+            <button id="focusModeBtn" class="icon-btn" title="Focus mode"><i class="fas fa-eye-slash"></i></button>
+            <button id="viewToggleBtn" class="icon-btn" title="Toggle Kanban view"><i class="fas fa-columns"></i></button>
+            <button id="helpBtn" class="icon-btn" title="Keyboard shortcuts"><i class="fas fa-question"></i></button>
             <div class="theme-toggle">
                 <button class="theme-btn" data-theme="light"><i class="fas fa-sun"></i></button>
                 <button class="theme-btn" data-theme="dark"><i class="fas fa-moon"></i></button>
@@ -70,7 +68,7 @@
             <div class="card">
                 <h3><i class="fas fa-chart-line"></i> Stats</h3>
                 <div id="stats"></div>
-                <div id="lastSaved"></div>
+                <div id="lastSaved" style="font-size:0.7rem;"></div>
                 <button id="syncBtn" class="secondary-btn"><i class="fas fa-cloud-upload-alt"></i> Sync to Cloud</button>
                 <button id="signInBtn" class="secondary-btn"><i class="fab fa-google"></i> Sign in</button>
             </div>
@@ -95,7 +93,7 @@
             </div>
         </div>
         
-        <!-- Main content (List / Kanban) -->
+        <!-- Main content -->
         <div class="content">
             <div class="card toolbar">
                 <div class="filter-group">
@@ -122,7 +120,14 @@
 <div id="shortcutsModal" class="modal" style="display:none">
     <div class="modal-content">
         <h3>Keyboard Shortcuts</h3>
-        <ul><li><kbd>Ctrl+N</kbd> New task</li><li><kbd>Ctrl+F</kbd> Focus search</li><li><kbd>Ctrl+Z</kbd> Undo</li><li><kbd>Del</kbd> Delete selected</li><li><kbd>?</kbd> Show this help</li><li><kbd>Esc</kbd> Close modal</li></ul>
+        <ul>
+            <li><kbd>Ctrl+N</kbd> New task</li>
+            <li><kbd>Ctrl+F</kbd> Focus search</li>
+            <li><kbd>Ctrl+Z</kbd> Undo last delete</li>
+            <li><kbd>Del</kbd> Delete selected tasks</li>
+            <li><kbd>?</kbd> Show this help</li>
+            <li><kbd>Esc</kbd> Close modal</li>
+        </ul>
         <button id="closeShortcuts">Close</button>
     </div>
 </div>
