@@ -1,15 +1,12 @@
-// js/main.js – Ultimate version with all enhancements
 import { openDB, loadTasksFromDB, saveTasksToDB } from './db.js';
 import { generateId, showToast, fileToBase64 } from './utils.js';
 import { setGlobalTasks, getSelectedIds, clearSelected, renderStats, renderTaskList, renderMiniCalendar, setFilter, setSearch, setSortMethod, getFilteredTasks } from './ui.js';
 import { renderKanban } from './kanban.js';
 import { updateAnalytics } from './analytics.js';
-import { initSwipe } from './swipe.js';
 import { initShortcuts } from './shortcuts.js';
-import { checkReminders } from './reminders.js';
+import { checkRecurringTasks, checkReminders, formatReminderOffset } from './reminders.js';
 import { startPomodoro, stopPomodoro } from './pomodoro.js';
 import { initFirebase, signInWithGoogle, syncTasksToCloud, isSignedIn, signOutUser, shareTaskList } from './firebase.js';
-import { startTimerForTask, stopTimerForTask } from './timeTracker.js';
 import { exportToCSV } from './csvExport.js';
 import { initRichText, getRichText, setRichText } from './richText.js';
 
@@ -31,8 +28,7 @@ function renderAll() {
     renderStats(); renderMiniCalendar(tasks); updateAnalytics(tasks);
 }
 
-// Enhanced addTask with file attachments, rich text, recurring rules (rrule)
-async function addTask(title, richDesc, due, priority, tagsStr, rruleStr, files) {
+async function addTask(title, richDesc, due, priority, tagsStr, rruleStr, reminderOffset, files) {
     if(!title.trim()) { showToast("Title required", false); return; }
     const attachments = [];
     for(const file of files) {
@@ -48,6 +44,8 @@ async function addTask(title, richDesc, due, priority, tagsStr, rruleStr, files)
         tags: tagsStr.split(',').map(s=>s.trim()).filter(s=>s),
         rrule: rruleStr || null,
         attachments,
+        reminderOffset: reminderOffset || 0,
+        reminderNotified: false,
         completed: false,
         totalTimeSpent: 0,
         createdAt: new Date().toISOString(),
@@ -73,15 +71,38 @@ async function toggleComplete(id) {
         await persist();
     }
 }
-async function editTask(id) {
-    const t = tasks.find(t=>t.id===id);
-    if(t) {
-        const newTitle = prompt("Edit title", t.title);
-        if(newTitle?.trim()) t.title = newTitle.trim();
-        const newDesc = prompt("Description (HTML)", t.description);
-        if(newDesc !== null) t.description = newDesc;
-        t.activityLog.push(`Edited at ${new Date().toLocaleString()}`);
-        await persist();
+
+let editingTaskId = null;
+function openEditModal(id) {
+    const task = tasks.find(t => t.id === id);
+    if(task) {
+        editingTaskId = id;
+        document.getElementById("editTitle").value = task.title;
+        document.getElementById("editDesc").value = task.description;
+        document.getElementById("editDue").value = task.dueDate || "";
+        document.getElementById("editPriority").value = task.priority;
+        document.getElementById("editReminderOffset").value = task.reminderOffset || 0;
+        document.getElementById("editModal").style.display = 'flex';
+    }
+}
+function closeEditModal() { document.getElementById("editModal").style.display = 'none'; editingTaskId = null; }
+async function saveEdit() {
+    if(editingTaskId) {
+        const task = tasks.find(t => t.id === editingTaskId);
+        if(task) {
+            task.title = document.getElementById("editTitle").value.trim();
+            task.description = document.getElementById("editDesc").value;
+            task.dueDate = document.getElementById("editDue").value || null;
+            task.priority = document.getElementById("editPriority").value;
+            const newOffset = parseInt(document.getElementById("editReminderOffset").value);
+            if(task.reminderOffset !== newOffset) {
+                task.reminderOffset = newOffset;
+                task.reminderNotified = false;
+            }
+            task.activityLog.push(`Edited at ${new Date().toLocaleString()}`);
+            await persist();
+        }
+        closeEditModal();
     }
 }
 function showLog(id) { const t = tasks.find(t=>t.id===id); if(t) alert(`Activity:\n${t.activityLog.join('\n')}`); }
@@ -90,18 +111,61 @@ async function bulkCompleteSelected() { for(let id of selectedIds) { const t = t
 async function exportJSON() { const data = JSON.stringify(tasks, null, 2); const blob = new Blob([data], {type:"application/json"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "taskforce_backup.json"; a.click(); URL.revokeObjectURL(a.href); }
 async function importJSON(file) { const text = await file.text(); const imported = JSON.parse(text); tasks = imported; await persist(); showToast("Imported successfully", true); }
 
-// File preview for new task
+// Export to Calendar with ALARM based on user's reminderOffset
+async function exportToCalendar() {
+    const tasksWithDue = tasks.filter(task => !task.completed && task.dueDate);
+    if (tasksWithDue.length === 0) {
+        showToast("No pending tasks with due dates to export", false);
+        return;
+    }
+    const events = [];
+    for (const task of tasksWithDue) {
+        let startDate = new Date(task.dueDate);
+        if (isNaN(startDate.getTime()) || task.dueDate.length === 10) {
+            startDate = new Date(`${task.dueDate}T09:00:00`);
+        }
+        const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+        let description = (task.description || "").replace(/<[^>]*>/g, '').substring(0, 500);
+        const reminderMins = task.reminderOffset || 0;
+        const event = {
+            start: [startDate.getFullYear(), startDate.getMonth()+1, startDate.getDate(), startDate.getHours(), startDate.getMinutes()],
+            end: [endDate.getFullYear(), endDate.getMonth()+1, endDate.getDate(), endDate.getHours(), endDate.getMinutes()],
+            title: task.title,
+            description: description,
+            location: "TaskForce",
+            status: "CONFIRMED",
+            busy: true
+        };
+        if (reminderMins > 0) {
+            event.alarm = [{ action: "display", trigger: { minutes: reminderMins, before: true } }];
+        }
+        events.push(event);
+    }
+    ics.createEvents(events, (error, value) => {
+        if (error) { showToast("Failed to generate calendar file", false); } 
+        else {
+            const blob = new Blob([value], { type: "text/calendar" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "taskforce_calendar.ics";
+            link.click();
+            URL.revokeObjectURL(link.href);
+            showToast(`Exported ${events.length} events with reminders`, true);
+        }
+    });
+}
+
+// Image preview
 document.getElementById("taskFiles")?.addEventListener("change", (e) => {
     const preview = document.getElementById("filePreviewList");
     preview.innerHTML = Array.from(e.target.files).map(f => `<div>📎 ${f.name} (${(f.size/1024).toFixed(1)} KB)</div>`).join('');
 });
 
-// Rich text editor init
 quillEditor = initRichText('richEditor');
 
-// Add button event
 document.getElementById("addBtn").onclick = async () => {
     const files = Array.from(document.getElementById("taskFiles").files);
+    const reminderVal = parseInt(document.getElementById("reminderOffset").value) || 0;
     await addTask(
         document.getElementById("taskTitle").value,
         getRichText(),
@@ -109,6 +173,7 @@ document.getElementById("addBtn").onclick = async () => {
         document.getElementById("taskPriority").value,
         document.getElementById("taskTags").value,
         document.getElementById("recurringRule").value,
+        reminderVal,
         files
     );
     document.getElementById("taskTitle").value = "";
@@ -117,9 +182,9 @@ document.getElementById("addBtn").onclick = async () => {
     document.getElementById("taskTags").value = "";
     document.getElementById("taskFiles").value = "";
     document.getElementById("filePreviewList").innerHTML = "";
+    document.getElementById("reminderOffset").value = "0";
 };
 
-// Other event listeners (same as before)
 document.getElementById("filterAll").onclick = () => { setFilter("all"); renderAll(); };
 document.getElementById("filterActive").onclick = () => { setFilter("active"); renderAll(); };
 document.getElementById("filterCompleted").onclick = () => { setFilter("completed"); renderAll(); };
@@ -142,13 +207,18 @@ document.getElementById("viewToggleBtn").onclick = () => { currentView = current
 document.getElementById("helpBtn").onclick = () => document.getElementById("shortcutsModal").style.display = 'flex';
 document.getElementById("closeShortcuts").onclick = () => document.getElementById("shortcutsModal").style.display = 'none';
 document.getElementById("exportCsvBtn").onclick = () => exportToCSV(tasks);
+document.getElementById("exportCalendarBtn").onclick = exportToCalendar;
 
-// Theme
+// Edit modal buttons
+document.getElementById("closeEditModal").onclick = closeEditModal;
+document.getElementById("saveEditBtn").onclick = saveEdit;
+window.addEventListener('click', (e) => { if(e.target === document.getElementById("editModal")) closeEditModal(); });
+
 function setTheme(theme) { document.documentElement.setAttribute("data-theme", theme); localStorage.setItem("taskforce_theme", theme); document.querySelectorAll(".theme-btn").forEach(btn => { if(btn.dataset.theme === theme) btn.classList.add("active"); else btn.classList.remove("active"); }); }
 function loadTheme() { const saved = localStorage.getItem("taskforce_theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); setTheme(saved); }
 document.querySelectorAll(".theme-btn").forEach(btn => btn.addEventListener("click", () => setTheme(btn.dataset.theme)));
 
 initShortcuts({ newTask: ()=>document.getElementById("taskTitle").focus(), focusSearch: ()=>document.getElementById("searchTasks").focus(), undo: undoDelete, deleteSelected: bulkDeleteSelected });
 
-async function init() { await openDB(); tasks = await loadTasksFromDB(); if(!tasks.length) tasks = []; setGlobalTasks(tasks); loadTheme(); await persist(); setInterval(() => checkReminders(tasks), 60000); if(Notification.permission === "default") Notification.requestPermission(); initFirebase((user)=>{ document.getElementById("signInBtn").innerHTML = user ? '<i class="fas fa-sign-out-alt"></i> Sign out' : '<i class="fab fa-google"></i> Sign in'; }, (cloudTasks)=>{ if(cloudTasks){ tasks = cloudTasks; persist(); } }); }
+async function init() { await openDB(); tasks = await loadTasksFromDB(); if(!tasks.length) tasks = []; setGlobalTasks(tasks); loadTheme(); await persist(); setInterval(async () => { tasks = checkRecurringTasks(tasks, async (newTasks) => { tasks = newTasks; await persist(); }); checkReminders(tasks); await persist(); }, 60000); if(Notification.permission === "default") Notification.requestPermission(); initFirebase((user)=>{ document.getElementById("signInBtn").innerHTML = user ? '<i class="fas fa-sign-out-alt"></i> Sign out' : '<i class="fab fa-google"></i> Sign in'; }, (cloudTasks)=>{ if(cloudTasks){ tasks = cloudTasks; persist(); } }); }
 init();
