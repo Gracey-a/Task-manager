@@ -53,13 +53,16 @@
                 </div>
                 <div class="input-group"><input type="text" id="taskTags" placeholder="Tags (comma separated)"></div>
                 <div class="input-group">
+                    <label>Recurring</label>
                     <select id="recurringRule">
                         <option value="">No repeat</option>
                         <option value="RRULE:FREQ=DAILY">Daily</option>
                         <option value="RRULE:FREQ=WEEKLY">Weekly</option>
                         <option value="RRULE:FREQ=MONTHLY">Monthly</option>
                         <option value="RRULE:FREQ=YEARLY">Yearly</option>
+                        <option value="custom">Custom (every X days)</option>
                     </select>
+                    <input type="number" id="customRecurDays" placeholder="Every X days" style="display:none; margin-top:0.3rem;">
                 </div>
                 <div class="input-group">
                     <label><i class="fas fa-bell"></i> Reminder before due:</label>
