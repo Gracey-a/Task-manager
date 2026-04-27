@@ -34,6 +34,7 @@ button:hover { filter:brightness(0.9); }
 .badge { font-size:0.65rem; padding:0.2rem 0.5rem; border-radius:1rem; background:var(--bg-page); }
 .tag { background:var(--accent-soft); color:var(--accent); }
 .task-actions button { background:transparent; color:var(--text-secondary); padding:0.2rem 0.4rem; margin-left:0.2rem; }
+.task-actions button:hover { color:var(--accent); }
 .swipe-left { transform:translateX(-100px); transition:0.2s; opacity:0.5; }
 .swipe-right { transform:translateX(100px); transition:0.2s; opacity:0.5; }
 .kanban-board { display:flex; gap:1rem; overflow-x:auto; padding-bottom:1rem; }
@@ -42,11 +43,51 @@ button:hover { filter:brightness(0.9); }
 .focus-mode .sidebar { display:none; }
 .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:1000; }
 .modal-content { background:var(--bg-surface); border-radius:1.5rem; padding:1.5rem; max-width:400px; width:90%; }
-.toast { position:fixed; bottom:2rem; right:2rem; background:var(--bg-surface); border-left:4px solid var(--accent); padding:0.8rem 1.2rem; border-radius:0.5rem; z-index:1000; display:flex; gap:1rem; align-items:center; }
+.toast { position:fixed; bottom:2rem; right:2rem; background:var(--bg-surface); border-left:4px solid var(--accent); padding:0.8rem 1.2rem; border-radius:0.5rem; z-index:1000; display:flex; gap:1rem; align-items:center; box-shadow:0 10px 25px rgba(0,0,0,0.1); }
+.toast-undo { background:var(--accent); color:white; border:none; padding:0.2rem 0.8rem; border-radius:2rem; cursor:pointer; }
 .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; text-align:center; font-size:0.75rem; margin-top:0.5rem; }
 .cal-day { padding:0.3rem; border-radius:0.3rem; cursor:pointer; }
 .cal-day.has-task { background:var(--accent-soft); font-weight:bold; }
-.ql-editor { min-height:100px; background:var(--bg-surface); color:var(--text-primary); }
-.file-attachment { display:inline-flex; align-items:center; gap:0.3rem; background:var(--bg-page); padding:0.2rem 0.5rem; border-radius:1rem; margin-right:0.3rem; font-size:0.7rem; }
-.time-tracker { font-size:0.7rem; background:var(--accent-soft); padding:0.1rem 0.4rem; border-radius:1rem; margin-left:0.5rem; }
+/* Rich editor toolbar responsiveness */
+.ql-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+}
+.ql-toolbar button, .ql-toolbar .ql-picker {
+    font-size: 12px;
+}
+@media (max-width: 600px) {
+    .ql-toolbar {
+        font-size: 10px;
+    }
+    .ql-toolbar button svg {
+        width: 14px;
+        height: 14px;
+    }
+}
+/* Image thumbnails */
+.image-thumb {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 0.3rem;
+    cursor: pointer;
+    border: 1px solid var(--border-light);
+}
+.image-preview-item {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 0.3rem;
+}
+/* Button highlight animation */
+@keyframes buttonFlash {
+    0% { transform: scale(1); background-color: var(--accent); }
+    50% { transform: scale(1.05); background-color: #4caf50; }
+    100% { transform: scale(1); background-color: var(--accent); }
+}
+.btn-flash {
+    animation: buttonFlash 0.5s ease;
+}
 @media (max-width:800px) { .sidebar { flex:auto; width:100%; } .main-grid { flex-direction:column; } }
