@@ -1,10 +1,10 @@
 import { openDB, loadTasksFromDB, saveTasksToDB } from './db.js';
-import { generateId, showToast, fileToBase64 } from './utils.js';
+import { generateId, showToast, fileToBase64, flashButton } from './utils.js';
 import { setGlobalTasks, getSelectedIds, clearSelected, renderStats, renderTaskList, renderMiniCalendar, setFilter, setSearch, setSortMethod, getFilteredTasks } from './ui.js';
 import { renderKanban } from './kanban.js';
 import { updateAnalytics } from './analytics.js';
 import { initShortcuts } from './shortcuts.js';
-import { checkRecurringTasks, checkReminders, formatReminderOffset } from './reminders.js';
+import { checkRecurringTasks, checkReminders } from './reminders.js';
 import { startPomodoro, stopPomodoro } from './pomodoro.js';
 import { initFirebase, signInWithGoogle, syncTasksToCloud, isSignedIn, signOutUser, shareTaskList } from './firebase.js';
 import { exportToCSV } from './csvExport.js';
@@ -28,12 +28,19 @@ function renderAll() {
     renderStats(); renderMiniCalendar(tasks); updateAnalytics(tasks);
 }
 
-async function addTask(title, richDesc, due, priority, tagsStr, rruleStr, reminderOffset, files) {
+async function addTask(title, richDesc, due, priority, tagsStr, rruleStr, customRecurDays, reminderOffset, files) {
     if(!title.trim()) { showToast("Title required", false); return; }
     const attachments = [];
     for(const file of files) {
         const base64 = await fileToBase64(file);
         attachments.push({ name: file.name, data: base64, type: file.type, size: file.size });
+    }
+    // Build rrule if custom
+    let finalRrule = rruleStr;
+    if (rruleStr === 'custom' && customRecurDays && customRecurDays > 0) {
+        finalRrule = `RRULE:FREQ=DAILY;INTERVAL=${customRecurDays}`;
+    } else if (rruleStr === 'custom') {
+        finalRrule = '';
     }
     const newTask = {
         id: generateId(),
@@ -42,7 +49,7 @@ async function addTask(title, richDesc, due, priority, tagsStr, rruleStr, remind
         dueDate: due || null,
         priority,
         tags: tagsStr.split(',').map(s=>s.trim()).filter(s=>s),
-        rrule: rruleStr || null,
+        rrule: finalRrule || null,
         attachments,
         reminderOffset: reminderOffset || 0,
         reminderNotified: false,
@@ -81,7 +88,9 @@ function openEditModal(id) {
         document.getElementById("editDesc").value = task.description;
         document.getElementById("editDue").value = task.dueDate || "";
         document.getElementById("editPriority").value = task.priority;
-        document.getElementById("editReminderOffset").value = task.reminderOffset || 0;
+        // Set the reminder offset dropdown to the saved value
+        const offsetSelect = document.getElementById("editReminderOffset");
+        if (offsetSelect) offsetSelect.value = task.reminderOffset || 0;
         document.getElementById("editModal").style.display = 'flex';
     }
 }
@@ -111,7 +120,7 @@ async function bulkCompleteSelected() { for(let id of selectedIds) { const t = t
 async function exportJSON() { const data = JSON.stringify(tasks, null, 2); const blob = new Blob([data], {type:"application/json"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "taskforce_backup.json"; a.click(); URL.revokeObjectURL(a.href); }
 async function importJSON(file) { const text = await file.text(); const imported = JSON.parse(text); tasks = imported; await persist(); showToast("Imported successfully", true); }
 
-// Export to Calendar with ALARM based on user's reminderOffset
+// Export to Calendar with alarm based on reminderOffset + button flash
 async function exportToCalendar() {
     const tasksWithDue = tasks.filter(task => !task.completed && task.dueDate);
     if (tasksWithDue.length === 0) {
@@ -151,28 +160,53 @@ async function exportToCalendar() {
             link.click();
             URL.revokeObjectURL(link.href);
             showToast(`Exported ${events.length} events with reminders`, true);
+            flashButton('exportCalendarBtn'); // Visual feedback
         }
     });
 }
 
-// Image preview
+// File preview with thumbnails for images
 document.getElementById("taskFiles")?.addEventListener("change", (e) => {
     const preview = document.getElementById("filePreviewList");
-    preview.innerHTML = Array.from(e.target.files).map(f => `<div>📎 ${f.name} (${(f.size/1024).toFixed(1)} KB)</div>`).join('');
+    preview.innerHTML = "";
+    for (const file of e.target.files) {
+        if (file.type.startsWith('image/')) {
+            const img = document.createElement("img");
+            img.src = URL.createObjectURL(file);
+            img.className = "image-preview-item";
+            preview.appendChild(img);
+        } else {
+            const div = document.createElement("div");
+            div.textContent = `📎 ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+            preview.appendChild(div);
+        }
+    }
 });
 
 quillEditor = initRichText('richEditor');
 
+// Custom recurring days field visibility
+document.getElementById("recurringRule").addEventListener("change", (e) => {
+    const customField = document.getElementById("customRecurDays");
+    customField.style.display = e.target.value === 'custom' ? 'block' : 'none';
+});
+
 document.getElementById("addBtn").onclick = async () => {
     const files = Array.from(document.getElementById("taskFiles").files);
     const reminderVal = parseInt(document.getElementById("reminderOffset").value) || 0;
+    const recurringVal = document.getElementById("recurringRule").value;
+    let customDays = null;
+    if (recurringVal === 'custom') {
+        customDays = parseInt(document.getElementById("customRecurDays").value) || 1;
+    }
     await addTask(
         document.getElementById("taskTitle").value,
         getRichText(),
         document.getElementById("taskDue").value,
         document.getElementById("taskPriority").value,
         document.getElementById("taskTags").value,
-        document.getElementById("recurringRule").value,
+        recurringVal,
+        customDays,
         reminderVal,
         files
     );
@@ -183,6 +217,8 @@ document.getElementById("addBtn").onclick = async () => {
     document.getElementById("taskFiles").value = "";
     document.getElementById("filePreviewList").innerHTML = "";
     document.getElementById("reminderOffset").value = "0";
+    document.getElementById("recurringRule").value = "";
+    document.getElementById("customRecurDays").style.display = 'none';
 };
 
 document.getElementById("filterAll").onclick = () => { setFilter("all"); renderAll(); };
