@@ -29,7 +29,7 @@ export function renderStats() {
     if (statsDiv) statsDiv.innerHTML = `<div>Total: ${total}</div><div>Active: ${total-completed}</div><div>Completed: ${completed}</div>`;
 }
 
-export function renderTaskList(onToggle, onDelete, onEdit, onLog) {
+export function renderTaskList(onToggleComplete, onDelete, onEdit, onShowLog) {
     const filtered = getFilteredTasks();
     const container = document.getElementById("taskListContainer");
     if (!filtered.length) { container.innerHTML = "<div class='card'>✨ No tasks. Add one!</div>"; return; }
@@ -42,26 +42,26 @@ export function renderTaskList(onToggle, onDelete, onEdit, onLog) {
                 ${task.dueDate ? `<span class="badge"><i class="far fa-clock"></i> ${new Date(task.dueDate).toLocaleString()}</span>` : ''}
                 ${task.tags && task.tags.length ? task.tags.map(t=>`<span class="badge tag">${escapeHtml(t)}</span>`).join('') : ''}
                 <div class="task-actions">
-                    <button class="complete-btn" data-id="${task.id}"><i class="fas ${task.completed ? 'fa-undo' : 'fa-check'}"></i></button>
-                    <button class="edit-btn" data-id="${task.id}"><i class="fas fa-edit"></i></button>
-                    <button class="delete-btn" data-id="${task.id}"><i class="fas fa-trash"></i></button>
-                    <button class="log-btn" data-id="${task.id}"><i class="fas fa-history"></i></button>
+                    <button class="complete-btn" data-id="${task.id}" title="Toggle complete"><i class="fas ${task.completed ? 'fa-undo' : 'fa-check'}"></i></button>
+                    <button class="edit-btn" data-id="${task.id}" title="Edit task"><i class="fas fa-edit"></i></button>
+                    <button class="delete-btn" data-id="${task.id}" title="Delete task"><i class="fas fa-trash"></i></button>
+                    <button class="log-btn" data-id="${task.id}" title="Activity log"><i class="fas fa-history"></i></button>
                 </div>
             </div>
             ${task.description ? `<div class="task-desc" style="font-size:0.8rem; margin-top:0.3rem; color:var(--text-muted)">${escapeHtml(task.description)}</div>` : ''}
-            ${task.images && task.images.length ? `
+            ${task.attachments && task.attachments.length ? `
                 <div style="display:flex; gap:0.3rem; margin-top:0.5rem; margin-left:2rem;">
-                    ${task.images.map(img => `<img src="${img.data}" class="image-thumb" alt="attachment" onclick="window.open('${img.data}')">`).join('')}
+                    ${task.attachments.map(att => `<span class="badge">📎 ${escapeHtml(att.name)}</span>`).join('')}
                 </div>
             ` : ''}
         </div>
     `).join('');
     
     document.querySelectorAll('.task-select').forEach(cb => cb.addEventListener('change', (e) => { const id = parseFloat(e.target.dataset.id); e.target.checked ? selectedIds.add(id) : selectedIds.delete(id); }));
-    document.querySelectorAll('.complete-btn').forEach(btn => btn.addEventListener('click', (e) => onToggle(parseFloat(btn.dataset.id))));
+    document.querySelectorAll('.complete-btn').forEach(btn => btn.addEventListener('click', (e) => onToggleComplete(parseFloat(btn.dataset.id))));
     document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', (e) => onDelete(parseFloat(btn.dataset.id), true)));
     document.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', (e) => onEdit(parseFloat(btn.dataset.id))));
-    document.querySelectorAll('.log-btn').forEach(btn => btn.addEventListener('click', (e) => onLog(parseFloat(btn.dataset.id))));
+    document.querySelectorAll('.log-btn').forEach(btn => btn.addEventListener('click', (e) => onShowLog(parseFloat(btn.dataset.id))));
 }
 
 export function renderMiniCalendar(tasks) {
