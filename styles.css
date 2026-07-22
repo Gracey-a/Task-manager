@@ -67,15 +67,8 @@ button:hover { filter:brightness(0.9); }
         height: 14px;
     }
 }
-/* Image thumbnails */
-.image-thumb {
-    width: 40px;
-    height: 40px;
-    object-fit: cover;
-    border-radius: 0.3rem;
-    cursor: pointer;
-    border: 1px solid var(--border-light);
-}
+.image-thumb { transition: transform 0.2s; }
+.image-thumb:hover { transform: scale(1.05); box-shadow: 0 0 10px rgba(0,0,0,0.2); }
 .image-preview-item {
     width: 50px;
     height: 50px;
