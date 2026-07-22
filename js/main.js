@@ -19,11 +19,11 @@ function renderAll() {
     if(currentView === 'list') {
         document.getElementById('taskListContainer').style.display = 'block';
         document.getElementById('kanbanContainer').style.display = 'none';
-        renderTaskList(toggleComplete, deleteTask, editTask, showLog);
+        renderTaskList(toggleComplete, deleteTask, openEditModal, showLog);
     } else {
         document.getElementById('taskListContainer').style.display = 'none';
         document.getElementById('kanbanContainer').style.display = 'flex';
-        renderKanban(getFilteredTasks(), toggleComplete, editTask, deleteTask);
+        renderKanban(getFilteredTasks(), toggleComplete, openEditModal, deleteTask);
     }
     renderStats(); renderMiniCalendar(tasks); updateAnalytics(tasks);
 }
@@ -35,12 +35,9 @@ async function addTask(title, richDesc, due, priority, tagsStr, rruleStr, custom
         const base64 = await fileToBase64(file);
         attachments.push({ name: file.name, data: base64, type: file.type, size: file.size });
     }
-    // Build rrule if custom
     let finalRrule = rruleStr;
-    if (rruleStr === 'custom' && customRecurDays && customRecurDays > 0) {
-        finalRrule = `RRULE:FREQ=DAILY;INTERVAL=${customRecurDays}`;
-    } else if (rruleStr === 'custom') {
-        finalRrule = '';
+    if (rruleStr === 'custom') {
+        finalRrule = customRecurDays && customRecurDays > 0 ? `RRULE:FREQ=DAILY;INTERVAL=${customRecurDays}` : '';
     }
     const newTask = {
         id: generateId(),
@@ -88,7 +85,6 @@ function openEditModal(id) {
         document.getElementById("editDesc").value = task.description;
         document.getElementById("editDue").value = task.dueDate || "";
         document.getElementById("editPriority").value = task.priority;
-        // Set the reminder offset dropdown to the saved value
         const offsetSelect = document.getElementById("editReminderOffset");
         if (offsetSelect) offsetSelect.value = task.reminderOffset || 0;
         document.getElementById("editModal").style.display = 'flex';
@@ -160,7 +156,7 @@ async function exportToCalendar() {
             link.click();
             URL.revokeObjectURL(link.href);
             showToast(`Exported ${events.length} events with reminders`, true);
-            flashButton('exportCalendarBtn'); // Visual feedback
+            flashButton('exportCalendarBtn');
         }
     });
 }
