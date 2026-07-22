@@ -29,7 +29,7 @@ export function renderStats() {
     if (statsDiv) statsDiv.innerHTML = `<div>Total: ${total}</div><div>Active: ${total-completed}</div><div>Completed: ${completed}</div>`;
 }
 
-// ========== Attachment Modal ==========
+// ========== Attachment Modal (global) ==========
 function openAttachmentModal(data, type, name) {
     // Remove any existing modal
     const existing = document.getElementById('attachmentModal');
@@ -53,7 +53,6 @@ function openAttachmentModal(data, type, name) {
         position: relative; display: flex; flex-direction: column;
     `;
 
-    // Close button
     const closeBtn = document.createElement('button');
     closeBtn.innerHTML = '✕';
     closeBtn.style.cssText = `
@@ -63,10 +62,8 @@ function openAttachmentModal(data, type, name) {
         align-items: center; justify-content: center; z-index: 10;
     `;
     closeBtn.onclick = (e) => { e.stopPropagation(); modal.remove(); };
-
     container.appendChild(closeBtn);
 
-    // Content area
     const content = document.createElement('div');
     content.style.cssText = 'flex:1; padding:1rem; overflow:auto; display:flex; justify-content:center; align-items:center;';
 
@@ -76,7 +73,6 @@ function openAttachmentModal(data, type, name) {
         img.style.cssText = 'max-width:100%; max-height:80vh; border-radius:0.3rem; object-fit:contain;';
         content.appendChild(img);
     } else {
-        // For PDFs, other files – use iframe
         const iframe = document.createElement('iframe');
         iframe.src = data;
         iframe.style.cssText = 'width:90vw; height:85vh; border:none; border-radius:0.3rem;';
@@ -99,6 +95,9 @@ function openAttachmentModal(data, type, name) {
     }
 }
 
+// Expose function globally so event listeners can call it
+window.openAttachmentModal = openAttachmentModal;
+
 export function renderTaskList(onToggleComplete, onDelete, onEdit, onShowLog) {
     const filtered = getFilteredTasks();
     const container = document.getElementById("taskListContainer");
@@ -117,17 +116,19 @@ export function renderTaskList(onToggleComplete, onDelete, onEdit, onShowLog) {
 
         let attachmentsHtml = '';
         if (task.attachments && task.attachments.length) {
-            attachmentsHtml = `<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.3rem; align-items:center;">`;
-            task.attachments.forEach(att => {
-                const encodedData = encodeURIComponent(att.data);
-                const onclick = `openAttachmentModal('${att.data}', '${att.type}', '${escapeHtml(att.name)}')`;
+            attachmentsHtml = `<div class="attachments-container" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.3rem; align-items:center;">`;
+            task.attachments.forEach((att, index) => {
+                // Use data attributes to store attachment info
+                const dataAttr = encodeURIComponent(att.data);
+                const typeAttr = encodeURIComponent(att.type || '');
+                const nameAttr = encodeURIComponent(att.name || 'file');
                 if (att.type && att.type.startsWith('image/')) {
-                    attachmentsHtml += `<img src="${att.data}" class="attachment-thumb" alt="${escapeHtml(att.name)}" onclick="${onclick}">`;
+                    attachmentsHtml += `<img src="${att.data}" class="attachment-thumb" data-attachment="${dataAttr}" data-type="${typeAttr}" data-name="${nameAttr}" alt="${escapeHtml(att.name)}">`;
                 } else {
                     const icon = att.type?.includes('pdf') ? '📄' : 
                                  att.type?.includes('zip') ? '📦' : 
                                  att.type?.includes('doc') ? '📝' : '📎';
-                    attachmentsHtml += `<span class="attachment-file" onclick="${onclick}">${icon} ${escapeHtml(att.name)}</span>`;
+                    attachmentsHtml += `<span class="attachment-file" data-attachment="${dataAttr}" data-type="${typeAttr}" data-name="${nameAttr}">${icon} ${escapeHtml(att.name)}</span>`;
                 }
             });
             attachmentsHtml += `</div>`;
@@ -152,11 +153,22 @@ export function renderTaskList(onToggleComplete, onDelete, onEdit, onShowLog) {
         `;
     }).join('');
 
+    // Attach event listeners for task actions
     document.querySelectorAll('.task-select').forEach(cb => cb.addEventListener('change', (e) => { const id = parseFloat(e.target.dataset.id); e.target.checked ? selectedIds.add(id) : selectedIds.delete(id); }));
     document.querySelectorAll('.complete-btn').forEach(btn => btn.addEventListener('click', (e) => onToggleComplete(parseFloat(btn.dataset.id))));
     document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', (e) => onDelete(parseFloat(btn.dataset.id), true)));
     document.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', (e) => onEdit(parseFloat(btn.dataset.id))));
     document.querySelectorAll('.log-btn').forEach(btn => btn.addEventListener('click', (e) => onShowLog(parseFloat(btn.dataset.id))));
+
+    // Attach click listeners for attachments
+    document.querySelectorAll('.attachment-thumb, .attachment-file').forEach(el => {
+        el.addEventListener('click', (e) => {
+            const data = decodeURIComponent(el.dataset.attachment);
+            const type = decodeURIComponent(el.dataset.type);
+            const name = decodeURIComponent(el.dataset.name);
+            window.openAttachmentModal(data, type, name);
+        });
+    });
 }
 
 export function renderMiniCalendar(tasks) {
