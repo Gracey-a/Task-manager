@@ -50,8 +50,20 @@ export function renderTaskList(onToggleComplete, onDelete, onEdit, onShowLog) {
             </div>
             ${task.description ? `<div class="task-desc" style="font-size:0.8rem; margin-top:0.3rem; color:var(--text-muted)">${escapeHtml(task.description)}</div>` : ''}
             ${task.attachments && task.attachments.length ? `
-                <div style="display:flex; gap:0.3rem; margin-top:0.5rem; margin-left:2rem;">
-                    ${task.attachments.map(att => `<span class="badge">📎 ${escapeHtml(att.name)}</span>`).join('')}
+                <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem; margin-left:2rem; align-items:center;">
+                    ${task.attachments.map(att => {
+                        if (att.type && att.type.startsWith('image/')) {
+                            return `<img src="${att.data}" class="image-thumb" alt="${escapeHtml(att.name)}" 
+                                        style="cursor:pointer; width:60px; height:60px; object-fit:cover; border-radius:0.3rem; border:1px solid var(--border-light);"
+                                        onclick="window.open('${att.data}', '_blank')">`;
+                        } else {
+                            const icon = att.type?.includes('pdf') ? '📄' : 
+                                         att.type?.includes('zip') ? '📦' : 
+                                         att.type?.includes('doc') ? '📝' : '📎';
+                            return `<span class="badge" style="cursor:pointer; padding:0.3rem 0.6rem; background:var(--bg-page);"
+                                        onclick="window.open('${att.data}', '_blank')">${icon} ${escapeHtml(att.name)}</span>`;
+                        }
+                    }).join('')}
                 </div>
             ` : ''}
         </div>
