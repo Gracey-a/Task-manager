@@ -29,19 +29,85 @@ export function renderStats() {
     if (statsDiv) statsDiv.innerHTML = `<div>Total: ${total}</div><div>Active: ${total-completed}</div><div>Completed: ${completed}</div>`;
 }
 
+// ========== Attachment Modal ==========
+function openAttachmentModal(data, type, name) {
+    // Remove any existing modal
+    const existing = document.getElementById('attachmentModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'attachmentModal';
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 9999; padding: 2rem;
+        animation: fadeIn 0.2s ease;
+    `;
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+    const container = document.createElement('div');
+    container.style.cssText = `
+        max-width: 90%; max-height: 90%; background: var(--bg-surface);
+        border-radius: 0.75rem; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        position: relative; display: flex; flex-direction: column;
+    `;
+
+    // Close button
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '✕';
+    closeBtn.style.cssText = `
+        position: absolute; top: 0.5rem; right: 0.8rem; background: rgba(0,0,0,0.5);
+        color: white; border: none; font-size: 1.5rem; cursor: pointer;
+        border-radius: 50%; width: 2.2rem; height: 2.2rem; display: flex;
+        align-items: center; justify-content: center; z-index: 10;
+    `;
+    closeBtn.onclick = (e) => { e.stopPropagation(); modal.remove(); };
+
+    container.appendChild(closeBtn);
+
+    // Content area
+    const content = document.createElement('div');
+    content.style.cssText = 'flex:1; padding:1rem; overflow:auto; display:flex; justify-content:center; align-items:center;';
+
+    if (type && type.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.src = data;
+        img.style.cssText = 'max-width:100%; max-height:80vh; border-radius:0.3rem; object-fit:contain;';
+        content.appendChild(img);
+    } else {
+        // For PDFs, other files – use iframe
+        const iframe = document.createElement('iframe');
+        iframe.src = data;
+        iframe.style.cssText = 'width:90vw; height:85vh; border:none; border-radius:0.3rem;';
+        iframe.title = name || 'Attachment';
+        content.appendChild(iframe);
+    }
+
+    container.appendChild(content);
+    modal.appendChild(container);
+    document.body.appendChild(modal);
+
+    // Add animation keyframes if not exists
+    if (!document.getElementById('attachmentModalStyle')) {
+        const style = document.createElement('style');
+        style.id = 'attachmentModalStyle';
+        style.textContent = `
+            @keyframes fadeIn { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
 export function renderTaskList(onToggleComplete, onDelete, onEdit, onShowLog) {
     const filtered = getFilteredTasks();
     const container = document.getElementById("taskListContainer");
     if (!filtered.length) { container.innerHTML = "<div class='card'>✨ No tasks. Add one!</div>"; return; }
     container.innerHTML = filtered.map(task => {
-        // Safely render description HTML (sanitize: remove scripts, allow basic formatting)
         let descHtml = task.description || '';
-        // Simple sanitization: remove <script> tags (just in case)
         descHtml = descHtml.replace(/<script.*?<\/script>/gi, '');
-        // Render description if not empty
-        const descMarkup = descHtml ? `<div class="task-desc" style="font-size:0.85rem; margin-top:0.3rem; color:var(--text-secondary);">${descHtml}</div>` : '';
+        const descMarkup = descHtml ? `<div class="task-desc">${descHtml}</div>` : '';
 
-        // Build metadata badges
         let metaHtml = '';
         if (task.priority) metaHtml += `<span class="badge">${task.priority}</span>`;
         if (task.dueDate) metaHtml += `<span class="badge"><i class="far fa-clock"></i> ${new Date(task.dueDate).toLocaleString()}</span>`;
@@ -49,21 +115,19 @@ export function renderTaskList(onToggleComplete, onDelete, onEdit, onShowLog) {
             metaHtml += task.tags.map(t => `<span class="badge tag">${escapeHtml(t)}</span>`).join('');
         }
 
-        // Attachments
         let attachmentsHtml = '';
         if (task.attachments && task.attachments.length) {
             attachmentsHtml = `<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.3rem; align-items:center;">`;
             task.attachments.forEach(att => {
+                const encodedData = encodeURIComponent(att.data);
+                const onclick = `openAttachmentModal('${att.data}', '${att.type}', '${escapeHtml(att.name)}')`;
                 if (att.type && att.type.startsWith('image/')) {
-                    attachmentsHtml += `<img src="${att.data}" class="image-thumb" alt="${escapeHtml(att.name)}" 
-                                        style="cursor:pointer; width:50px; height:50px; object-fit:cover; border-radius:0.3rem; border:1px solid var(--border-light);"
-                                        onclick="window.open('${att.data}', '_blank')">`;
+                    attachmentsHtml += `<img src="${att.data}" class="attachment-thumb" alt="${escapeHtml(att.name)}" onclick="${onclick}">`;
                 } else {
                     const icon = att.type?.includes('pdf') ? '📄' : 
                                  att.type?.includes('zip') ? '📦' : 
                                  att.type?.includes('doc') ? '📝' : '📎';
-                    attachmentsHtml += `<span class="badge" style="cursor:pointer; padding:0.2rem 0.5rem; background:var(--bg-page);"
-                                        onclick="window.open('${att.data}', '_blank')">${icon} ${escapeHtml(att.name)}</span>`;
+                    attachmentsHtml += `<span class="attachment-file" onclick="${onclick}">${icon} ${escapeHtml(att.name)}</span>`;
                 }
             });
             attachmentsHtml += `</div>`;
@@ -71,10 +135,10 @@ export function renderTaskList(onToggleComplete, onDelete, onEdit, onShowLog) {
 
         return `
         <div class="task-item ${task.completed ? 'completed' : ''}" data-id="${task.id}">
-            <div style="display:flex; align-items:center; gap:0.8rem; flex-wrap:wrap;">
+            <div class="task-row">
                 <input type="checkbox" class="task-select" data-id="${task.id}" ${selectedIds.has(task.id) ? 'checked' : ''}>
-                <span class="task-title" style="flex:1; font-weight:600; font-size:1rem;">${escapeHtml(task.title)}</span>
-                <div class="task-actions" style="display:flex; gap:0.3rem; align-items:center;">
+                <span class="task-title">${escapeHtml(task.title)}</span>
+                <div class="task-actions">
                     <button class="complete-btn" data-id="${task.id}" title="Toggle complete"><i class="fas ${task.completed ? 'fa-undo' : 'fa-check'}"></i></button>
                     <button class="edit-btn" data-id="${task.id}" title="Edit task"><i class="fas fa-edit"></i></button>
                     <button class="delete-btn" data-id="${task.id}" title="Delete task"><i class="fas fa-trash"></i></button>
@@ -82,15 +146,12 @@ export function renderTaskList(onToggleComplete, onDelete, onEdit, onShowLog) {
                 </div>
             </div>
             ${descMarkup}
-            <div style="display:flex; flex-wrap:wrap; gap:0.3rem; margin-top:0.3rem;">
-                ${metaHtml}
-            </div>
+            <div class="meta-row">${metaHtml}</div>
             ${attachmentsHtml}
         </div>
         `;
     }).join('');
 
-    // Attach event listeners
     document.querySelectorAll('.task-select').forEach(cb => cb.addEventListener('change', (e) => { const id = parseFloat(e.target.dataset.id); e.target.checked ? selectedIds.add(id) : selectedIds.delete(id); }));
     document.querySelectorAll('.complete-btn').forEach(btn => btn.addEventListener('click', (e) => onToggleComplete(parseFloat(btn.dataset.id))));
     document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', (e) => onDelete(parseFloat(btn.dataset.id), true)));
