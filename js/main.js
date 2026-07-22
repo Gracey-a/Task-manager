@@ -11,7 +11,6 @@ import { exportToCSV } from './csvExport.js';
 import { initRichText, getRichText, setRichText } from './richText.js';
 
 let tasks = [], deletedStack = [], currentView = 'list', focusMode = false;
-let selectedIds = new Set();
 let quillEditor;
 
 async function persist() { await saveTasksToDB(tasks); setGlobalTasks(tasks); renderAll(); updateAnalytics(tasks); if(isSignedIn()) syncTasksToCloud(tasks); }
@@ -111,12 +110,41 @@ async function saveEdit() {
     }
 }
 function showLog(id) { const t = tasks.find(t=>t.id===id); if(t) alert(`Activity:\n${t.activityLog.join('\n')}`); }
-async function bulkDeleteSelected() { for(let id of [...selectedIds]) await deleteTask(id, true); selectedIds.clear(); await persist(); }
-async function bulkCompleteSelected() { for(let id of selectedIds) { const t = tasks.find(t=>t.id===id); if(t && !t.completed) { t.completed = true; t.activityLog.push(`Completed at ${new Date().toLocaleString()}`); t.completedAt = new Date().toISOString(); } } await persist(); selectedIds.clear(); showToast("Selected tasks completed", true); }
+
+// ========== FIXED BULK ACTIONS ==========
+async function bulkDeleteSelected() {
+    const ids = [...getSelectedIds()];
+    if (ids.length === 0) { showToast("No tasks selected", false); return; }
+    for(let id of ids) await deleteTask(id, true);
+    clearSelected();
+    await persist();
+    showToast(`Deleted ${ids.length} tasks`, true);
+}
+
+async function bulkCompleteSelected() {
+    const ids = [...getSelectedIds()];
+    if (ids.length === 0) { showToast("No tasks selected", false); return; }
+    let count = 0;
+    for(let id of ids) {
+        const t = tasks.find(t => t.id === id);
+        if(t && !t.completed) {
+            t.completed = true;
+            t.activityLog.push(`Completed at ${new Date().toLocaleString()}`);
+            t.completedAt = new Date().toISOString();
+            count++;
+        }
+    }
+    clearSelected();
+    await persist();
+    if (count > 0) showToast(`Completed ${count} tasks`, true);
+    else showToast("Selected tasks already completed", false);
+}
+// ========================================
+
 async function exportJSON() { const data = JSON.stringify(tasks, null, 2); const blob = new Blob([data], {type:"application/json"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "taskforce_backup.json"; a.click(); URL.revokeObjectURL(a.href); }
 async function importJSON(file) { const text = await file.text(); const imported = JSON.parse(text); tasks = imported; await persist(); showToast("Imported successfully", true); }
 
-// Export to Calendar with alarm based on reminderOffset + button flash
+// Export to Calendar
 async function exportToCalendar() {
     const tasksWithDue = tasks.filter(task => !task.completed && task.dueDate);
     if (tasksWithDue.length === 0) {
@@ -161,7 +189,7 @@ async function exportToCalendar() {
     });
 }
 
-// File preview with thumbnails for images
+// File preview
 document.getElementById("taskFiles")?.addEventListener("change", (e) => {
     const preview = document.getElementById("filePreviewList");
     preview.innerHTML = "";
@@ -181,7 +209,6 @@ document.getElementById("taskFiles")?.addEventListener("change", (e) => {
 
 quillEditor = initRichText('richEditor');
 
-// Custom recurring days field visibility
 document.getElementById("recurringRule").addEventListener("change", (e) => {
     const customField = document.getElementById("customRecurDays");
     customField.style.display = e.target.value === 'custom' ? 'block' : 'none';
@@ -241,7 +268,6 @@ document.getElementById("closeShortcuts").onclick = () => document.getElementByI
 document.getElementById("exportCsvBtn").onclick = () => exportToCSV(tasks);
 document.getElementById("exportCalendarBtn").onclick = exportToCalendar;
 
-// Edit modal buttons
 document.getElementById("closeEditModal").onclick = closeEditModal;
 document.getElementById("saveEditBtn").onclick = saveEdit;
 window.addEventListener('click', (e) => { if(e.target === document.getElementById("editModal")) closeEditModal(); });
