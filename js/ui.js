@@ -33,42 +33,64 @@ export function renderTaskList(onToggleComplete, onDelete, onEdit, onShowLog) {
     const filtered = getFilteredTasks();
     const container = document.getElementById("taskListContainer");
     if (!filtered.length) { container.innerHTML = "<div class='card'>✨ No tasks. Add one!</div>"; return; }
-    container.innerHTML = filtered.map(task => `
+    container.innerHTML = filtered.map(task => {
+        // Safely render description HTML (sanitize: remove scripts, allow basic formatting)
+        let descHtml = task.description || '';
+        // Simple sanitization: remove <script> tags (just in case)
+        descHtml = descHtml.replace(/<script.*?<\/script>/gi, '');
+        // Render description if not empty
+        const descMarkup = descHtml ? `<div class="task-desc" style="font-size:0.85rem; margin-top:0.3rem; color:var(--text-secondary);">${descHtml}</div>` : '';
+
+        // Build metadata badges
+        let metaHtml = '';
+        if (task.priority) metaHtml += `<span class="badge">${task.priority}</span>`;
+        if (task.dueDate) metaHtml += `<span class="badge"><i class="far fa-clock"></i> ${new Date(task.dueDate).toLocaleString()}</span>`;
+        if (task.tags && task.tags.length) {
+            metaHtml += task.tags.map(t => `<span class="badge tag">${escapeHtml(t)}</span>`).join('');
+        }
+
+        // Attachments
+        let attachmentsHtml = '';
+        if (task.attachments && task.attachments.length) {
+            attachmentsHtml = `<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.3rem; align-items:center;">`;
+            task.attachments.forEach(att => {
+                if (att.type && att.type.startsWith('image/')) {
+                    attachmentsHtml += `<img src="${att.data}" class="image-thumb" alt="${escapeHtml(att.name)}" 
+                                        style="cursor:pointer; width:50px; height:50px; object-fit:cover; border-radius:0.3rem; border:1px solid var(--border-light);"
+                                        onclick="window.open('${att.data}', '_blank')">`;
+                } else {
+                    const icon = att.type?.includes('pdf') ? '📄' : 
+                                 att.type?.includes('zip') ? '📦' : 
+                                 att.type?.includes('doc') ? '📝' : '📎';
+                    attachmentsHtml += `<span class="badge" style="cursor:pointer; padding:0.2rem 0.5rem; background:var(--bg-page);"
+                                        onclick="window.open('${att.data}', '_blank')">${icon} ${escapeHtml(att.name)}</span>`;
+                }
+            });
+            attachmentsHtml += `</div>`;
+        }
+
+        return `
         <div class="task-item ${task.completed ? 'completed' : ''}" data-id="${task.id}">
-            <div class="task-header">
+            <div style="display:flex; align-items:center; gap:0.8rem; flex-wrap:wrap;">
                 <input type="checkbox" class="task-select" data-id="${task.id}" ${selectedIds.has(task.id) ? 'checked' : ''}>
-                <span class="task-title">${escapeHtml(task.title)}</span>
-                <span class="badge">${task.priority}</span>
-                ${task.dueDate ? `<span class="badge"><i class="far fa-clock"></i> ${new Date(task.dueDate).toLocaleString()}</span>` : ''}
-                ${task.tags && task.tags.length ? task.tags.map(t=>`<span class="badge tag">${escapeHtml(t)}</span>`).join('') : ''}
-                <div class="task-actions">
+                <span class="task-title" style="flex:1; font-weight:600; font-size:1rem;">${escapeHtml(task.title)}</span>
+                <div class="task-actions" style="display:flex; gap:0.3rem; align-items:center;">
                     <button class="complete-btn" data-id="${task.id}" title="Toggle complete"><i class="fas ${task.completed ? 'fa-undo' : 'fa-check'}"></i></button>
                     <button class="edit-btn" data-id="${task.id}" title="Edit task"><i class="fas fa-edit"></i></button>
                     <button class="delete-btn" data-id="${task.id}" title="Delete task"><i class="fas fa-trash"></i></button>
                     <button class="log-btn" data-id="${task.id}" title="Activity log"><i class="fas fa-history"></i></button>
                 </div>
             </div>
-            ${task.description ? `<div class="task-desc" style="font-size:0.8rem; margin-top:0.3rem; color:var(--text-muted)">${escapeHtml(task.description)}</div>` : ''}
-            ${task.attachments && task.attachments.length ? `
-                <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem; margin-left:2rem; align-items:center;">
-                    ${task.attachments.map(att => {
-                        if (att.type && att.type.startsWith('image/')) {
-                            return `<img src="${att.data}" class="image-thumb" alt="${escapeHtml(att.name)}" 
-                                        style="cursor:pointer; width:60px; height:60px; object-fit:cover; border-radius:0.3rem; border:1px solid var(--border-light);"
-                                        onclick="window.open('${att.data}', '_blank')">`;
-                        } else {
-                            const icon = att.type?.includes('pdf') ? '📄' : 
-                                         att.type?.includes('zip') ? '📦' : 
-                                         att.type?.includes('doc') ? '📝' : '📎';
-                            return `<span class="badge" style="cursor:pointer; padding:0.3rem 0.6rem; background:var(--bg-page);"
-                                        onclick="window.open('${att.data}', '_blank')">${icon} ${escapeHtml(att.name)}</span>`;
-                        }
-                    }).join('')}
-                </div>
-            ` : ''}
+            ${descMarkup}
+            <div style="display:flex; flex-wrap:wrap; gap:0.3rem; margin-top:0.3rem;">
+                ${metaHtml}
+            </div>
+            ${attachmentsHtml}
         </div>
-    `).join('');
-    
+        `;
+    }).join('');
+
+    // Attach event listeners
     document.querySelectorAll('.task-select').forEach(cb => cb.addEventListener('change', (e) => { const id = parseFloat(e.target.dataset.id); e.target.checked ? selectedIds.add(id) : selectedIds.delete(id); }));
     document.querySelectorAll('.complete-btn').forEach(btn => btn.addEventListener('click', (e) => onToggleComplete(parseFloat(btn.dataset.id))));
     document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', (e) => onDelete(parseFloat(btn.dataset.id), true)));
