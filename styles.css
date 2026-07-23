@@ -10,6 +10,7 @@
     --border-light: #E2E8F0;
     --text-primary: #0F172A;
     --text-secondary: #334155;
+    --text-muted: #64748B;
     --accent: #3B5C7D;
     --accent-soft: rgba(59, 92, 125, 0.1);
     --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
@@ -21,6 +22,7 @@
     --bg-surface: #1E293B;
     --border-light: #334155;
     --text-primary: #F1F5F9;
+    --text-muted: #94A3B8;
     --accent: #6C9BCF;
     --accent-soft: rgba(108, 155, 207, 0.15);
 }
@@ -79,7 +81,7 @@ h1 {
     border: none;
     font-size: 1.2rem;
     cursor: pointer;
-    color: var(--text-primary);
+    color: var(--text-secondary);
     padding: 0.3rem 0.6rem;
     border-radius: 2rem;
 }
@@ -141,6 +143,21 @@ h1 {
     margin-bottom: 0.8rem;
 }
 
+.input-group label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.2rem;
+}
+
+.input-group label span {
+    font-weight: normal;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    margin-left: 0.3rem;
+}
+
 input,
 select,
 textarea {
@@ -150,6 +167,15 @@ textarea {
     border-radius: 0.5rem;
     background: var(--bg-surface);
     color: var(--text-primary);
+    font-size: 0.85rem;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 button {
@@ -172,6 +198,11 @@ button:hover {
     color: var(--text-primary);
 }
 
+.secondary-btn:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+}
+
 .toolbar {
     display: flex;
     flex-wrap: wrap;
@@ -185,7 +216,23 @@ button:hover {
     gap: 0.3rem;
 }
 
-/* ----- TASK ITEM (updated) ----- */
+.filter-group button {
+    background: transparent;
+    border: 1px solid var(--border-light);
+    color: var(--text-secondary);
+    padding: 0.3rem 0.8rem;
+    border-radius: 2rem;
+    font-size: 0.75rem;
+}
+
+.filter-group button.active,
+.filter-group button:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+/* ===== TASK ITEM ===== */
 .task-item {
     display: flex;
     flex-direction: column;
@@ -204,6 +251,13 @@ button:hover {
     box-shadow: var(--shadow-md);
 }
 
+.task-row {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+}
+
 .task-title {
     flex: 1;
     font-weight: 600;
@@ -216,30 +270,19 @@ button:hover {
     opacity: 0.7;
 }
 
-/* Row: checkbox + title + actions */
-.task-row {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    flex-wrap: wrap;
-}
-
-/* Description (rendered HTML) */
 .task-desc {
     font-size: 0.85rem;
     color: var(--text-secondary);
     line-height: 1.5;
     margin: 0.2rem 0 0.2rem 0;
-    padding-left: 0.2rem;
-    border-left: 2px solid var(--border-light);
     padding-left: 0.8rem;
-}
-.task-desc p {
-    margin: 0;
-    color: var(--text-primary);
+    border-left: 2px solid var(--border-light);
 }
 
-/* Metadata badges (priority, due date, tags) */
+.task-desc p {
+    margin: 0;
+}
+
 .meta-row {
     display: flex;
     flex-wrap: wrap;
@@ -263,7 +306,6 @@ button:hover {
     color: var(--accent);
 }
 
-/* Task action buttons */
 .task-actions {
     display: flex;
     gap: 0.3rem;
@@ -296,7 +338,15 @@ button:hover {
     transform: scale(0.95);
 }
 
-/* Attachments */
+/* ===== ATTACHMENTS ===== */
+.attachments-container {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.3rem;
+    align-items: center;
+}
+
 .attachment-thumb {
     width: 40px;
     height: 40px;
@@ -306,10 +356,12 @@ button:hover {
     border: 1px solid var(--border-light);
     transition: transform 0.2s;
 }
+
 .attachment-thumb:hover {
     transform: scale(1.08);
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
 }
+
 .attachment-file {
     background: var(--bg-page);
     padding: 0.15rem 0.6rem;
@@ -320,24 +372,53 @@ button:hover {
     display: inline-flex;
     align-items: center;
     gap: 0.2rem;
+    transition: background 0.2s;
 }
+
 .attachment-file:hover {
     background: var(--accent-soft);
 }
 
-/* Swipe (mobile) */
+/* ===== ADVANCED TOGGLE ===== */
+details {
+    margin-top: 0.5rem;
+}
+
+details summary {
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--accent);
+    padding: 0.2rem 0;
+    outline: none;
+}
+
+details summary:hover {
+    text-decoration: underline;
+}
+
+details summary::-webkit-details-marker {
+    color: var(--accent);
+}
+
+details[open] summary {
+    margin-bottom: 0.3rem;
+}
+
+/* ===== SWIPE (mobile) ===== */
 .swipe-left {
     transform: translateX(-100px);
     transition: 0.2s;
     opacity: 0.5;
 }
+
 .swipe-right {
     transform: translateX(100px);
     transition: 0.2s;
     opacity: 0.5;
 }
 
-/* Kanban board */
+/* ===== KANBAN ===== */
 .kanban-board {
     display: flex;
     gap: 1rem;
@@ -353,6 +434,12 @@ button:hover {
     padding: 0.6rem;
 }
 
+.kanban-column h3 {
+    margin-bottom: 0.8rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
 .kanban-card {
     background: var(--bg-surface);
     border: 1px solid var(--border-light);
@@ -362,12 +449,12 @@ button:hover {
     cursor: grab;
 }
 
-/* Focus mode */
+/* ===== FOCUS MODE ===== */
 .focus-mode .sidebar {
     display: none;
 }
 
-/* Modals */
+/* ===== MODALS ===== */
 .modal {
     position: fixed;
     top: 0;
@@ -397,6 +484,7 @@ button:hover {
 .modal-input-group {
     margin-bottom: 1rem;
 }
+
 .modal-input-group label {
     font-size: 0.7rem;
     font-weight: 600;
@@ -404,6 +492,7 @@ button:hover {
     display: block;
     margin-bottom: 0.2rem;
 }
+
 .modal-input-group input,
 .modal-input-group select,
 .modal-input-group textarea {
@@ -414,27 +503,35 @@ button:hover {
     background: var(--bg-surface);
     color: var(--text-primary);
 }
+
 .modal-buttons {
     display: flex;
     justify-content: flex-end;
     gap: 0.8rem;
     margin-top: 1rem;
 }
+
 .modal-buttons button {
     padding: 0.4rem 1rem;
     border-radius: 2rem;
 }
-.modal-buttons .btn-cancel {
+
+.btn-cancel {
     background: transparent;
     border: 1px solid var(--border-light);
     color: var(--text-primary);
 }
-.modal-buttons .btn-save {
+
+.btn-cancel:hover {
+    background: var(--bg-page);
+}
+
+.btn-save {
     background: var(--accent);
     color: white;
 }
 
-/* Toast */
+/* ===== TOAST ===== */
 .toast {
     position: fixed;
     bottom: 2rem;
@@ -459,7 +556,7 @@ button:hover {
     cursor: pointer;
 }
 
-/* Mini Calendar */
+/* ===== MINI CALENDAR ===== */
 .cal-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -480,7 +577,7 @@ button:hover {
     font-weight: bold;
 }
 
-/* Rich editor toolbar responsiveness */
+/* ===== RICH EDITOR ===== */
 .ql-toolbar {
     display: flex;
     flex-wrap: wrap;
@@ -502,7 +599,7 @@ button:hover {
     }
 }
 
-/* Image thumbnails (preview) */
+/* ===== IMAGE PREVIEW (new task) ===== */
 .image-preview-item {
     width: 50px;
     height: 50px;
@@ -511,7 +608,7 @@ button:hover {
     border: 1px solid var(--border-light);
 }
 
-/* Button flash animation */
+/* ===== BUTTON FLASH ===== */
 @keyframes buttonFlash {
     0% {
         transform: scale(1);
@@ -531,7 +628,7 @@ button:hover {
     animation: buttonFlash 0.5s ease;
 }
 
-/* Responsive */
+/* ===== RESPONSIVE ===== */
 @media (max-width: 800px) {
     .sidebar {
         flex: auto;
@@ -542,5 +639,42 @@ button:hover {
     }
     .kanban-board {
         flex-direction: column;
+    }
+    .card {
+        padding: 0.8rem;
+    }
+    .input-group {
+        margin-bottom: 0.6rem;
+    }
+    .task-row {
+        flex-wrap: wrap;
+    }
+    .task-actions button {
+        width: 1.8rem;
+        height: 1.8rem;
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 500px) {
+    body {
+        padding: 0.5rem;
+    }
+    .header {
+        padding: 0.8rem 1rem;
+    }
+    h1 {
+        font-size: 1.2rem;
+    }
+    .title-badge {
+        font-size: 0.6rem;
+        padding: 0.1rem 0.4rem;
+    }
+    .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filter-group {
+        justify-content: center;
     }
 }
