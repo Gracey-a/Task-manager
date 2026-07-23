@@ -15,7 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Chart.js removed -->
     <script src="https://cdn.jsdelivr.net/npm/ics@3.8.1/dist/ics.min.js"></script>
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
@@ -41,16 +41,12 @@
         <div class="sidebar">
             <div class="card">
                 <h3><i class="fas fa-plus"></i> New Task</h3>
-                <!-- Title -->
                 <div class="input-group"><input type="text" id="taskTitle" placeholder="Task title"></div>
-                <!-- Description (rich text) -->
                 <div class="input-group"><div id="richEditor" style="height:150px;"></div></div>
-                <!-- Due date (with helper text) -->
                 <div class="input-group">
                     <label>Due date <span style="font-weight:normal; font-size:0.7rem; color:var(--text-muted);">(tap calendar → use arrows for future months)</span></label>
                     <input type="datetime-local" id="taskDue">
                 </div>
-                <!-- Reminder (now right after due date) -->
                 <div class="input-group">
                     <label><i class="fas fa-bell"></i> Reminder before due:</label>
                     <select id="reminderOffset">
@@ -64,7 +60,6 @@
                         <option value="10080">1 week</option>
                     </select>
                 </div>
-                <!-- Priority (still important) -->
                 <div class="input-group">
                     <label>Priority</label>
                     <select id="taskPriority">
@@ -74,7 +69,7 @@
                     </select>
                 </div>
 
-                <!-- Advanced toggle (collapses optional fields) -->
+                <!-- Advanced toggle -->
                 <details style="margin-top:0.5rem;">
                     <summary style="cursor:pointer; font-size:0.8rem; color:var(--accent);">⚙️ Advanced options</summary>
                     <div style="margin-top:0.5rem;">
@@ -101,7 +96,7 @@
 
                 <button id="addBtn" style="margin-top:0.8rem;"><i class="fas fa-save"></i> Add Task</button>
             </div>
-            <!-- Stats, Analytics, etc. (unchanged) -->
+            <!-- Stats -->
             <div class="card">
                 <h3><i class="fas fa-chart-line"></i> Stats</h3>
                 <div id="stats"></div>
@@ -110,23 +105,21 @@
                 <button id="shareListBtn" class="secondary-btn"><i class="fas fa-share-alt"></i> Share List</button>
                 <button id="signInBtn" class="secondary-btn"><i class="fab fa-google"></i> Sign in</button>
             </div>
-            <div class="card">
-                <h3><i class="fas fa-chart-simple"></i> Analytics</h3>
-                <canvas id="completionChart" width="200" height="150"></canvas>
-                <div id="insights"></div>
-                <button id="exportCsvBtn" class="secondary-btn"><i class="fas fa-file-csv"></i> Export CSV</button>
-            </div>
+            <!-- Calendar (mini) -->
             <div class="card">
                 <h3><i class="fas fa-calendar-alt"></i> Calendar</h3>
                 <div id="miniCalendar"></div>
             </div>
+            <!-- Data card (with Export JSON, Import JSON, Export CSV, Export Calendar) -->
             <div class="card">
                 <h3><i class="fas fa-file-export"></i> Data</h3>
                 <button id="exportBtn">Export JSON</button>
                 <button id="importBtn">Import JSON</button>
-                <button id="exportCalendarBtn" class="secondary-btn" style="margin-top:0.5rem;"><i class="fas fa-calendar-plus"></i> Export to Calendar (with reminders)</button>
+                <button id="exportCsvBtn" class="secondary-btn" style="margin-top:0.3rem;"><i class="fas fa-file-csv"></i> Export CSV</button>
+                <button id="exportCalendarBtn" class="secondary-btn" style="margin-top:0.3rem;"><i class="fas fa-calendar-plus"></i> Export to Calendar (with reminders)</button>
                 <input type="file" id="importFile" style="display:none">
             </div>
+            <!-- Pomodoro -->
             <div class="card">
                 <h3><i class="fas fa-clock"></i> Pomodoro</h3>
                 <div><span id="timerDisplay">25:00</span> <button id="pomodoroStart">Start</button> <button id="pomodoroStop">Stop</button></div>
