@@ -2,7 +2,6 @@ import { openDB, loadTasksFromDB, saveTasksToDB } from './db.js';
 import { generateId, showToast, fileToBase64, flashButton } from './utils.js';
 import { setGlobalTasks, getSelectedIds, clearSelected, renderStats, renderTaskList, renderMiniCalendar, setFilter, setSearch, setSortMethod, getFilteredTasks } from './ui.js';
 import { renderKanban } from './kanban.js';
-import { updateAnalytics } from './analytics.js';
 import { initShortcuts } from './shortcuts.js';
 import { checkRecurringTasks, checkReminders } from './reminders.js';
 import { startPomodoro, stopPomodoro } from './pomodoro.js';
@@ -13,7 +12,7 @@ import { initRichText, getRichText, setRichText } from './richText.js';
 let tasks = [], deletedStack = [], currentView = 'list', focusMode = false;
 let quillEditor;
 
-async function persist() { await saveTasksToDB(tasks); setGlobalTasks(tasks); renderAll(); updateAnalytics(tasks); if(isSignedIn()) syncTasksToCloud(tasks); }
+async function persist() { await saveTasksToDB(tasks); setGlobalTasks(tasks); renderAll(); if(isSignedIn()) syncTasksToCloud(tasks); }
 function renderAll() {
     if(currentView === 'list') {
         document.getElementById('taskListContainer').style.display = 'block';
@@ -24,7 +23,7 @@ function renderAll() {
         document.getElementById('kanbanContainer').style.display = 'flex';
         renderKanban(getFilteredTasks(), toggleComplete, openEditModal, deleteTask);
     }
-    renderStats(); renderMiniCalendar(tasks); updateAnalytics(tasks);
+    renderStats(); renderMiniCalendar(tasks);
 }
 
 async function addTask(title, richDesc, due, priority, tagsStr, rruleStr, customRecurDays, reminderOffset, files) {
@@ -111,7 +110,6 @@ async function saveEdit() {
 }
 function showLog(id) { const t = tasks.find(t=>t.id===id); if(t) alert(`Activity:\n${t.activityLog.join('\n')}`); }
 
-// ========== FIXED BULK ACTIONS ==========
 async function bulkDeleteSelected() {
     const ids = [...getSelectedIds()];
     if (ids.length === 0) { showToast("No tasks selected", false); return; }
@@ -139,7 +137,6 @@ async function bulkCompleteSelected() {
     if (count > 0) showToast(`Completed ${count} tasks`, true);
     else showToast("Selected tasks already completed", false);
 }
-// ========================================
 
 async function exportJSON() { const data = JSON.stringify(tasks, null, 2); const blob = new Blob([data], {type:"application/json"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "taskforce_backup.json"; a.click(); URL.revokeObjectURL(a.href); }
 async function importJSON(file) { const text = await file.text(); const imported = JSON.parse(text); tasks = imported; await persist(); showToast("Imported successfully", true); }
