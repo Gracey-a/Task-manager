@@ -147,7 +147,7 @@ h1 {
     display: block;
     font-size: 0.7rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--text-secondary);
     margin-bottom: 0.2rem;
 }
 
